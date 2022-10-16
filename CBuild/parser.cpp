@@ -943,7 +943,7 @@ namespace CBuild {
 		//Generate static lib.
 		if (build_type == Build_Type::Static_Lib) {
 
-			cmd = "ar rcs " + build_output + "/" + build_name + ".a";
+			cmd = "ar rcs " + build_output + "/lib" + build_name + ".a";
 
 			for (const std::string& file : obj_files) {
 				
@@ -960,7 +960,7 @@ namespace CBuild {
 
 			}
 
-			CBUILD_INFO("Generated '{}'", build_output + "/" + build_name + ".a");
+			CBUILD_INFO("Generated '{}'", build_output + "/lib" + build_name + ".a");
 
 		}
 
@@ -1008,7 +1008,7 @@ namespace CBuild {
 
 			if (run_exec) {
 
-				cmd = "\"" + build_output + "\\" + build_name + "\"";
+				cmd = "cd " + build_output + " && \"" + build_name + "\"";
 				system(cmd.c_str());
 
 			}
