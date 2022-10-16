@@ -4,11 +4,11 @@
 #include "parser.h"
 #include "string_helper.h"
 
+#include <Windows.h>
+
 int main(int argc, char** argv) {
 
 	CBuild::Log::init();
-
-	char* exec_dir = argv[0];
 
 	std::vector<std::string> flags;
 	std::string flag;
@@ -90,10 +90,16 @@ int main(int argc, char** argv) {
 
 	}
 	
+	char* exec_dir = argv[0];
 	std::filesystem::path exec_path = std::filesystem::u8path(exec_dir);
+
+	char buffer[1024];
+	DWORD result = GetModuleFileNameA(NULL, &buffer[0], 1024);
+	if (result != 0 && result < 1024)  exec_path = std::filesystem::u8path(buffer);
+
 	exec_path = exec_path.has_parent_path() ? exec_path.parent_path() : "";
-	std::filesystem::path projects_path = exec_path == "" ? "projects" : std::filesystem::u8path(exec_path.string() + "/projects");
-	
+	std::filesystem::path projects_path = exec_path == "" ? "cbuild_timestamps" : std::filesystem::u8path(exec_path.string() + "/cbuild_timestamps");
+
 	if (!std::filesystem::is_directory(projects_path)) {
 		std::filesystem::create_directory(projects_path);
 		
