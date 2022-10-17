@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
 	if (input_file.empty()) {
 
-		CBUILD_ERROR("No input filed specified.");
+		CBUILD_ERROR("No input file specified.");
 		return 0;
 
 	}

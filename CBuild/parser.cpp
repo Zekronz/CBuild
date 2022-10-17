@@ -934,7 +934,7 @@ namespace CBuild {
 		}
 
 		if (!built_something) {
-			CBUILD_TRACE("Everything is up to date.");
+			CBUILD_TRACE("Everything is up-to-date.");
 		}
 		else {
 			write_timestamps(timestamps_path);
