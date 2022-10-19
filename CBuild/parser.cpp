@@ -251,7 +251,7 @@ namespace CBuild {
 
 		}
 
-		obj_output = _cur_token.value;
+		obj_output = std::filesystem::u8path(_cur_token.value);
 		File::format_path(obj_output);
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
@@ -270,7 +270,7 @@ namespace CBuild {
 
 		}
 
-		build_output = _cur_token.value;
+		build_output = std::filesystem::u8path(_cur_token.value);
 		File::format_path(build_output);
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
@@ -321,7 +321,7 @@ namespace CBuild {
 
 		}
 
-		precompiled_header = _cur_token.value;
+		precompiled_header = std::filesystem::u8path(_cur_token.value);
 		File::format_path(precompiled_header);
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
@@ -366,7 +366,7 @@ namespace CBuild {
 		return parse_cmd_add_strings(_index, _cur_token, _prev_token, static_libs);
 	}
 
-	bool Parser::parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _dirs) {
+	bool Parser::parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _dirs) {
 
 		Token cmd_token = _cur_token;
 
@@ -384,14 +384,12 @@ namespace CBuild {
 
 			bool exists = false;
 
-			std::string path_str = _cur_token.value;
-			File::trim_path(path_str);
-			if (path_str.empty()) path_str = "./";
+			std::filesystem::path dir_path = std::filesystem::u8path(_cur_token.value);
+			File::format_path(dir_path);
 
-			std::filesystem::path path = std::filesystem::u8path(path_str);
-			for (const std::string& str : _dirs) {
+			for (const std::filesystem::path& path : _dirs) {
 				
-				if (path == std::filesystem::u8path(str)) {
+				if (File::compare(path, dir_path)) {
 
 					exists = true;
 					break;
@@ -407,7 +405,7 @@ namespace CBuild {
 
 			}
 			else {
-				_dirs.push_back(path_str);
+				_dirs.push_back(dir_path);
 			}
 
 			get_next_token(_index, _cur_token, _prev_token);
@@ -474,7 +472,9 @@ namespace CBuild {
 		_data += "\n";
 
 		u8 state = 0;
-		std::string token, file_name;
+		std::string token;
+
+		std::filesystem::path path;
 
 		for (const char& c : _data) {
 
@@ -488,14 +488,14 @@ namespace CBuild {
 					
 					if (!token.empty()) {
 
-						if (!File::file_exists(token)) {
+						path = std::filesystem::u8path(token);
+						File::format_path(path);
+
+						if (!File::file_exists(path)) {
 							state = 0;
 						}
 						else {
-
-							file_name = token;
 							state = 1;
-
 						}
 
 						token = "";
@@ -520,7 +520,7 @@ namespace CBuild {
 						u64 time;
 						stream >> time;
 
-						timestamps[file_name] = time;
+						timestamps[path.string()] = time;
 
 					}
 
@@ -544,7 +544,7 @@ namespace CBuild {
 
 	}
 
-	void Parser::write_timestamps(const std::string& _path) {
+	void Parser::write_timestamps(const std::filesystem::path& _path) {
 
 		std::string text = "";
 
@@ -560,17 +560,14 @@ namespace CBuild {
 
 	}
 
-	bool Parser::parse_include_directives(const std::string& _path, s32 _tab) {
+	bool Parser::parse_include_directives(const std::filesystem::path& _path) {
 
 		//@TODO: Standard libraries?
 
 		//Check if the file has already been parsed.
-		std::filesystem::path path = std::filesystem::u8path(_path);
-		std::string path_str = path.string(); //Just for consistency.
-		
 		for (const Checked_File& checked_file : checked_files) {
 
-			if (checked_file.path.compare(path) == 0) {
+			if (File::compare(checked_file.path, _path)) {
 				return checked_file.rebuild;
 			}
 
@@ -580,31 +577,30 @@ namespace CBuild {
 
 		if (!File::file_exists(_path)) {
 
-			checked_files.push_back({ path, false, 0 });
+			checked_files.push_back({ _path, false, 0 });
 			return false;
-
 
 		}
 
 		//Rebuild source file if object file does not exist.
-		if (path.extension().string() == ".c") {
+		if (_path.extension().string() == ".c") {
 
-			std::string obj_file_path = obj_output + "/" + path.stem().string() + ".o";
+			std::filesystem::path obj_file_path = obj_output / _path.filename().replace_extension(".o");//+ "/" + _path.stem().string() + ".o";
 			File::format_path(obj_file_path);
 
-			if (!File::file_exists(obj_file_path)) should_rebuild = true;
+			if (!File::file_exists(obj_file_path)) should_rebuild = true; //@TODO: TEST THIS
 
 		}
 
 		//Compare timestamps.
 		//@TODO: Check checksum instead?
-		u64 time = std::filesystem::last_write_time(path).time_since_epoch().count();
+		u64 time = std::filesystem::last_write_time(_path).time_since_epoch().count();
 
 		if (!should_rebuild) {
 
-			if (timestamps.find(path_str) != timestamps.end()) {
+			if (timestamps.find(_path.string()) != timestamps.end()) {
 
-				u64 old_time = timestamps[path_str];
+				u64 old_time = timestamps[_path.string()];
 				if (old_time != time) should_rebuild = true;
 
 			}
@@ -618,7 +614,7 @@ namespace CBuild {
 		std::string source;
 		if (!File::read_text_file(_path, source)) {
 
-			checked_files.push_back({ path, false, time });
+			checked_files.push_back({ _path, false, time });
 			return false;
 
 		}
@@ -655,7 +651,7 @@ namespace CBuild {
 
 		for (const std::string& local_file : local_files) {
 
-			std::string local_path = path.has_parent_path() ? path.parent_path().string() + "/" + local_file : local_file;
+			std::filesystem::path local_path = _path.has_parent_path() ? _path.parent_path() / std::filesystem::u8path(local_file) : std::filesystem::u8path(local_file);
 			File::format_path(local_path);
 			
 			//Fallback to include.
@@ -675,27 +671,103 @@ namespace CBuild {
 
 			}
 
-			if (parse_include_directives(local_path, _tab + 1)) should_rebuild = true;
+			if (parse_include_directives(local_path)) should_rebuild = true;
 
 		}
 
 		std::string incl_path = "";
-		for (const std::string& include_files : include_files) {
+		for (const std::string& include_file : include_files) {
 
-			for (const std::string& include_dir : incl_dirs) {
+			for (const std::filesystem::path& include_dir : incl_dirs) {
 
-				incl_path = include_dir + "/" + include_files;
+				std::filesystem::path incl_path = include_dir / std::filesystem::u8path(include_file);
 				File::format_path(incl_path);
 
 				if (!File::file_exists(incl_path)) continue;
-				if (parse_include_directives(incl_path, _tab + 1)) should_rebuild = true;
+				if (parse_include_directives(incl_path)) should_rebuild = true;
 
 			}
 
 		}
 
-		checked_files.push_back({ path, should_rebuild, time });
+		checked_files.push_back({ _path, should_rebuild, time });
 		return should_rebuild;
+
+	}
+
+	std::string Parser::create_gcc_base_cmd() {
+
+		std::string cmd = "gcc -Wall";
+
+		for (const std::filesystem::path& incl_dir : incl_dirs) {
+			cmd += " -I " + incl_dir.string();
+		}
+
+		for (const std::filesystem::path& lib_dir : lib_dirs) {
+			cmd += " -L " + lib_dir.string();
+		}
+
+		if (static_libs.size() > 0) {
+
+			cmd += " -static";
+
+			for (const std::string static_lib : static_libs) {
+				cmd += " -l " + static_lib;
+			}
+
+		}
+
+		return cmd;
+
+	}
+
+	std::string Parser::create_gcc_build_source_cmd(const std::filesystem::path& _source_file) {
+
+		std::string cmd = create_gcc_base_cmd();
+
+		std::filesystem::path obj_path = obj_output / _source_file.filename().replace_extension(".o");
+		File::format_path(obj_path);
+
+		cmd += " -c -o " + obj_path.string();
+
+		return cmd;
+
+	}
+
+	std::string Parser::create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file) {
+
+		std::string cmd = create_gcc_base_cmd();
+
+		std::filesystem::path gch_path = _pch_file;
+		gch_path.replace_extension(".gch");
+
+		cmd += " -c " + _pch_file.string() + " -o " + gch_path.string();
+
+	}
+
+	std::string Parser::create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files) {
+
+		std::string name = "lib" + build_name + ".a";
+
+		std::filesystem::path lib_path = build_output / std::filesystem::u8path(name);
+		File::format_path(lib_path);
+
+		std::string cmd = "ar rcs " + lib_path.string();
+
+		for (const std::filesystem::path& file : _obj_files) {
+
+			if (File::file_exists(file)) {
+				cmd += " " + file.string();
+			}
+
+		}
+
+		if (system(cmd.c_str()) != 0) {
+
+			CBUILD_ERROR("Error occurred while linking static library.");
+			return false;
+
+		}
 
 	}
 
@@ -729,9 +801,9 @@ namespace CBuild {
 		}
 
 		bool built_something = false;
-		std::vector<std::filesystem::path> files;
 
-		std::string timestamps_path = _projects_path.string() + "/" + project_name + ".cbuild_timestamp";
+		std::filesystem::path timestamps_path = _projects_path / std::filesystem::u8path(project_name + ".cbuild_timestamp");
+		File::format_path(timestamps_path);
 
 		if (File::file_exists(timestamps_path)) {
 
@@ -750,32 +822,34 @@ namespace CBuild {
 
 			bool found = false;
 
-			for (const std::string& src : src_dirs) {
-				if (File::file_exists(src + "/" + precompiled_header)) {
+			for (const std::filesystem::path& src_path : src_dirs) {
 
-					precompiled_header = src + "/" + precompiled_header;
+				std::filesystem::path pch_path = src_path / precompiled_header;
+				File::format_path(pch_path);
+
+				if (File::file_exists(pch_path)) {
+
+					precompiled_header = pch_path;
 					found = true;
 					break;
 
 				}
+
 			}
 
 			if (!found) {
-				CBUILD_WARN("Unable to locate precompiled header: '" + precompiled_header + "'");
+				CBUILD_WARN("Unable to locate precompiled header: '" + precompiled_header.string() + "'");
 			}
 			else {
-
-				File::format_path(precompiled_header);
-				std::filesystem::path pch_path = std::filesystem::u8path(precompiled_header);
 				
-				u64 time = std::filesystem::last_write_time(pch_path).time_since_epoch().count();
+				u64 time = std::filesystem::last_write_time(precompiled_header).time_since_epoch().count();
 
 				if (_force_rebuild) built_pch = true;
 				else {
 
-					if (timestamps.find(precompiled_header) != timestamps.end()) {
+					if (timestamps.find(precompiled_header.string()) != timestamps.end()) {
 
-						u64 old_time = timestamps[precompiled_header];
+						u64 old_time = timestamps[precompiled_header.string()];
 						if (old_time != time) built_pch = true;
 
 					}
@@ -789,30 +863,9 @@ namespace CBuild {
 
 				if (built_pch) {
 
-					cmd = "gcc -c -Wall";
+					cmd = create_gcc_build_pch_cmd(precompiled_header);
 
-					for (const std::string incl_dir : incl_dirs) {
-						cmd += " -I " + incl_dir;
-					}
-
-					for (const std::string lib_dir : lib_dirs) {
-						cmd += " -L " + lib_dir;
-					}
-
-					if (static_libs.size() > 0) {
-
-						cmd += " -static";
-
-						for (const std::string static_lib : static_libs) {
-							cmd += " -l " + static_lib;
-						}
-
-					}
-
-					cmd += " " + precompiled_header;
-					cmd += " -o " + precompiled_header + ".gch";
-
-					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header);
+					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
 					if (system(cmd.c_str()) != 0) {
 
 						CBUILD_ERROR("An error occurred while compiling precompiled header.");
@@ -827,53 +880,32 @@ namespace CBuild {
 		}
 
 		//Compile source files.
-		std::vector<std::string> obj_files;
-		for (const std::string dir : src_dirs) {
+		std::vector<std::filesystem::path> src_files;
+		std::vector<std::filesystem::path> obj_files;
 
-			if (!std::filesystem::is_directory(std::filesystem::u8path(dir))) {
+		for (const std::filesystem::path& src_path : src_dirs) {
 
-				CBUILD_ERROR("Directory '" + dir + "' does not exist.");
+			if (!File::directory_exists(src_path)) {
+
+				CBUILD_ERROR("Directory '" + src_path.string() + "' does not exist.");
 				return false;
 
 			}
 			
-			if (!File::find_files(dir, ".c", files)) continue;
+			if (!File::find_files(src_path, ".c", src_files)) continue;
 
-			for (const std::filesystem::path& file : files) {
+			for (const std::filesystem::path& file : src_files) {
 				
-				std::string obj_path = obj_output + "/" + file.stem().string() + ".o";
+				std::filesystem::path obj_path = obj_output / file.filename().replace_extension(".o");
 				File::format_path(obj_path);
 				obj_files.push_back(obj_path);
 
-				std::string file_path = file.string();
-				File::format_path(file_path);
-
-				bool built = parse_include_directives(file_path, 0);
+				bool built = parse_include_directives(file);
 				if (!built && !_force_rebuild) continue;
 
-				//Compile source file.
-				cmd = "gcc " + file_path + " -c -Wall";
+				cmd = create_gcc_build_source_cmd(file);
 
-				for (const std::string incl_dir : incl_dirs) {
-					cmd += " -I " + incl_dir;
-				}
-
-				for (const std::string lib_dir : lib_dirs) {
-					cmd += " -L " + lib_dir;
-				}
-
-				if (static_libs.size() > 0) {
-
-					cmd += " -static";
-
-					for (const std::string static_lib : static_libs) {
-						cmd += " -l " + static_lib;
-					}
-
-				}
-
-				cmd += " -o " + obj_output + "/" + file.stem().string() + ".o";
-				CBUILD_TRACE("Compiling '{}'", dir + "/" + file.filename().string());
+				CBUILD_TRACE("Compiling '{}'", src_path.string() + "/" + file.filename().string());
 
 				if (system(cmd.c_str()) != 0) {
 
@@ -911,15 +943,7 @@ namespace CBuild {
 		//Generate static lib.
 		if (build_type == Build_Type::Static_Lib) {
 
-			cmd = "ar rcs " + build_output + "/lib" + build_name + ".a";
-
-			for (const std::string& file : obj_files) {
-				
-				if (File::file_exists(file)) {
-					cmd += " " + file;
-				}
-
-			}
+			cmd = create_gcc_build_static_lib_cmd(obj_files);
 
 			if (system(cmd.c_str()) != 0) {
 

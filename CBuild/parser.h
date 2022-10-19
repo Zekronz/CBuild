@@ -55,14 +55,14 @@ namespace CBuild {
 		Build_Type build_type = Build_Type::Executable;
 
 		std::string project_name = "";
-		std::string obj_output = "";
-		std::string build_output = "";
+		std::filesystem::path precompiled_header = "";
+		std::filesystem::path obj_output;
+		std::filesystem::path build_output;
 		std::string build_name = "";
-		std::string precompiled_header = "";
 
-		std::vector<std::string> src_dirs;
-		std::vector<std::string> incl_dirs;
-		std::vector<std::string> lib_dirs;
+		std::vector<std::filesystem::path> src_dirs;
+		std::vector<std::filesystem::path> incl_dirs;
+		std::vector<std::filesystem::path> lib_dirs;
 		std::vector<std::string> static_libs;
 
 		bool run_exec = false;
@@ -91,13 +91,18 @@ namespace CBuild {
 		bool parse_cmd_add_lib_dirs(u64& _index, Token& _cur_token, Token& _prev_token);
 		bool parse_cmd_add_static_libs(u64& _index, Token& _cur_token, Token& _prev_token);
 
-		bool parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _dirs);
+		bool parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _dirs);
 		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings);
 
 		void parse_timestamps(std::string& _data);
-		void write_timestamps(const std::string& _path);
+		void write_timestamps(const std::filesystem::path& _path);
 
-		bool parse_include_directives(const std::string& _path, s32 _tab);
+		bool parse_include_directives(const std::filesystem::path& _path);
+
+		std::string create_gcc_base_cmd();
+		std::string create_gcc_build_source_cmd(const std::filesystem::path& _source_file);
+		std::string create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file);
+		std::string create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files);
 
 		bool should_build();
 		bool build(const std::filesystem::path& _projects_path, bool _force_rebuild = false);

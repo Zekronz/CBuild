@@ -21,47 +21,46 @@ namespace CBuild {
 
 	}
 
-	void File::format_path(std::string& _path) {
+	void File::format_path(std::filesystem::path& _path) {
 
-		std::filesystem::path path = std::filesystem::u8path(_path);
-		_path = path.string();
-		
-		for (u64 i = 0; i < _path.size(); ++i) {
-			if (_path[i] == '\\') _path[i] = '/';
+		//@TODO: Add unicode support.
+		std::string path_str = _path.string();
+
+		for (u64 i = 0; i < path_str.size(); ++i) {
+			if (path_str[i] == '\\') path_str[i] = '/';
 		}
 
-		if (_path[_path.length() - 1] == '/') _path.erase(_path.length() - 1, 1);
+		if (path_str[path_str.length() - 1] == '/') path_str.erase(path_str.length() - 1, 1);
+
+		trim_path(path_str);
+		if (path_str == "") path_str = "./";
+
+		_path = std::filesystem::u8path(path_str);
 
 	}
 
-	bool File::compare(const std::string& _path1, const std::string& _path2) {
-		return (std::filesystem::u8path(_path1).compare(std::filesystem::u8path(_path2)) == 0);
+	bool File::compare(const std::filesystem::path& _path1, const std::filesystem::path& _path2) {
+		return (_path1.compare(_path2) == 0);
 	}
 
-	bool File::file_exists(const std::string _path) {
+	bool File::file_exists(const std::filesystem::path& _path) {
 
-		std::filesystem::path path = std::filesystem::u8path(_path);
-
-		if (std::filesystem::is_directory(path)) return false;
-		return std::filesystem::exists(path);
-
-	}
-
-	bool File::directory_exists(const std::string _path) {
-
-		std::filesystem::path path = std::filesystem::u8path(_path);
-		return std::filesystem::is_directory(path);
+		if (std::filesystem::is_directory(_path)) return false;
+		return std::filesystem::exists(_path);
 
 	}
 
-	bool File::find_files(const std::string _path, const std::string _extension, std::vector<std::filesystem::path>& _files) {
+	bool File::directory_exists(const std::filesystem::path& _path) {
+		return std::filesystem::is_directory(_path);
+	}
 
-		std::filesystem::path path = std::filesystem::u8path(_path);
-		if (!std::filesystem::is_directory(path)) return false;
+	bool File::find_files(const std::filesystem::path& _path, const std::string _extension, std::vector<std::filesystem::path>& _files) {
+
+		if (!file_exists(_path)) return false;
 
 		_files.clear();
 		
-		for (const auto& entry : std::filesystem::directory_iterator(path)) {
+		for (const auto& entry : std::filesystem::directory_iterator(_path)) {
 			
 			if (_extension.empty() || entry.path().extension() == _extension) {
 				_files.push_back(entry.path());
@@ -73,10 +72,10 @@ namespace CBuild {
 
 	}
 
-	bool File::read_text_file(const std::string _path, std::string& _result) {
+	bool File::read_text_file(const std::filesystem::path& _path, std::string& _result) {
 
 		std::ifstream input;
-		input.open(std::filesystem::u8path(_path), std::ios::in);
+		input.open(_path, std::ios::in);
 
 		if (!input.good()) {
 
@@ -104,10 +103,10 @@ namespace CBuild {
 
 	}
 
-	bool File::write_text_file(const std::string& _path, const std::string& _text) {
+	bool File::write_text_file(const std::filesystem::path& _path, const std::string& _text) {
 
 		std::ofstream output;
-		output.open(std::filesystem::u8path(_path), std::ios::out);
+		output.open(_path, std::ios::out);
 
 		if (!output.good()) {
 
