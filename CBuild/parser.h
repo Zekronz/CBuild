@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <sstream>
+#include <unordered_map>
 
 #include "types.h"
 #include "error_handler.h"
@@ -28,12 +29,9 @@ namespace CBuild {
 
 	};
 
-	struct Command_Def {
+	struct Command {
 
-		std::string name = "";
-		std::vector<std::string> required_args;
-		std::vector<std::string> optional_args;
-		bool allow_unlimited_optional_args = false;
+		std::function<bool(u64&, Token&, Token&)> callback;
 
 	};
 
@@ -51,7 +49,7 @@ namespace CBuild {
 		Lexer* lexer = nullptr;
 		C_Lexer c_lexer;
 
-		std::vector<Command_Def> cmd_defs;
+		std::unordered_map<std::string, Command> cmds;
 
 		Compiler_Type compiler_type = Compiler_Type::GCC;
 		Build_Type build_type = Build_Type::Executable;
@@ -77,7 +75,6 @@ namespace CBuild {
 		bool get_current_token(const u64 _index, Token& _cur_token);
 		bool get_next_token(u64& _index, Token& _cur_token, Token& _prev_token);
 		bool get_prev_token(u64& _index, Token& _cur_token, Token& _prev_token);
-		bool get_cmd_def(const std::string _name, Command_Def& _def);
 		bool parse_tokens(Lexer* lexer);
 		bool parse_semicolon(u64& _index, Token& _cur_token, Token& _prev_token);
 		bool parse_cmd(u64& _index, Token& _cur_token, Token& _prev_token);
@@ -89,6 +86,11 @@ namespace CBuild {
 		bool parse_cmd_set_build_name(u64& _index, Token& _cur_token, Token& _prev_token);
 		bool parse_cmd_set_precompiled_header(u64& _index, Token& _cur_token, Token& _prev_token);
 		bool parse_cmd_set_run_exec(u64& _index, Token& _cur_token, Token& _prev_token);
+		bool parse_cmd_add_src_dirs(u64& _index, Token& _cur_token, Token& _prev_token);
+		bool parse_cmd_add_incl_dirs(u64& _index, Token& _cur_token, Token& _prev_token);
+		bool parse_cmd_add_lib_dirs(u64& _index, Token& _cur_token, Token& _prev_token);
+		bool parse_cmd_add_static_libs(u64& _index, Token& _cur_token, Token& _prev_token);
+
 		bool parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _dirs);
 		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings);
 

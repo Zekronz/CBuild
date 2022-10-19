@@ -7,7 +7,7 @@
 #include <Windows.h>
 
 int main(int argc, char** argv) {
-
+	
 	CBuild::Log::init();
 
 	std::vector<std::string> flags;

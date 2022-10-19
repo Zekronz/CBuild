@@ -6,20 +6,26 @@
 
 #include <filesystem>
 
+#define COMMAND_FUNC(func) std::bind(&func, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
+
 namespace CBuild {
 
 	Parser::Parser() {
-		
-		/*cmd_defs.push_back({"set_compiler", {"compiler_name"}});
-		cmd_defs.push_back({ "set_build_type", { "build_type" } });
-		cmd_defs.push_back({ "set_obj_output", { "obj_output_path" } });
-		cmd_defs.push_back({ "set_build_output", 1 });
-		cmd_defs.push_back({ "set_output_name", 1 });
-		cmd_defs.push_back({ "set_output_name", 1 });
-		cmd_defs.push_back({ "add_src_dirs", 0, -1 });
-		cmd_defs.push_back({ "add_incl_dirs", 0, -1 });
-		cmd_defs.push_back({ "add_lib_dirs", 0, -1 });
-		cmd_defs.push_back({ "add_static_libs", 0, -1 });*/
+
+		cmds["set_compiler"]			= { COMMAND_FUNC(Parser::parse_cmd_set_compiler) };
+		cmds["set_project_name"]		= { COMMAND_FUNC(Parser::parse_cmd_set_project_name) };
+		cmds["set_build_type"]			= { COMMAND_FUNC(Parser::parse_cmd_set_build_type) };
+		cmds["set_build_output"]		= { COMMAND_FUNC(Parser::parse_cmd_set_build_output) };
+		cmds["set_build_name"]			= { COMMAND_FUNC(Parser::parse_cmd_set_build_name) };
+		cmds["set_obj_output"]			= { COMMAND_FUNC(Parser::parse_cmd_set_obj_output) };
+		cmds["set_precompiled_header"]	= { COMMAND_FUNC(Parser::parse_cmd_set_precompiled_header) };
+		cmds["set_pch"]					= { COMMAND_FUNC(Parser::parse_cmd_set_precompiled_header) };
+		cmds["set_run_exec"]			= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
+		cmds["set_run_executable"]		= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
+		cmds["add_src_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_src_dirs) };
+		cmds["add_incl_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_incl_dirs) };
+		cmds["add_lib_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_lib_dirs) };
+		cmds["add_static_libs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_static_libs) };
 
 	}
 
@@ -66,23 +72,6 @@ namespace CBuild {
 
 	}
 
-	bool Parser::get_cmd_def(const std::string _name, Command_Def& _def) {
-
-		for (Command_Def def : cmd_defs) {
-
-			if (def.name == _name) {
-
-				_def = def;
-				return true;
-
-			}
-
-		}
-
-		return false;
-
-	}
-
 	bool Parser::parse_tokens(Lexer* _lexer) {
 
 		lexer = _lexer;
@@ -111,14 +100,14 @@ namespace CBuild {
 			}
 
 			//Command.
-			else if (token.type == Token_Type::Command) {
+			else if (token.type == Token_Type::String) {
 				if (!parse_cmd(i, token, prev_token)) return false;
 			}
 
 			//Unexpected token.
 			else {
 
-				std::string msg = "Unexpected string found: '" + token.value + "'";
+				std::string msg = "Unexpected token found: '" + token.value + "'";
 				error_handler.set_error(Error_Type::Error, msg, token.line_pos, token.char_pos);
 				return false;
 
@@ -145,16 +134,8 @@ namespace CBuild {
 
 	bool Parser::parse_cmd(u64& _index, Token& _cur_token, Token& _prev_token) {
 
-		/*Command_Def def;
-		if (!get_cmd_def(_cur_token.value, def)) {
-
-			std::string msg = "Invalid command found: '" + _cur_token.value + "'";
-			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
-			return false;
-
-		}*/
-
-		if (!lexer->is_command(_cur_token.value)) { //This shouldn't ever happen.
+		const auto& it = cmds.find(_cur_token.value);
+		if (it == cmds.end()) {
 
 			std::string msg = "Invalid command found: '" + _cur_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -162,42 +143,7 @@ namespace CBuild {
 
 		}
 
-		if (_cur_token.value == "set_compiler") {
-			if (!parse_cmd_set_compiler(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_build_type") {
-			if (!parse_cmd_set_build_type(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_project_name") {
-			if (!parse_cmd_set_project_name(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_obj_output") {
-			if (!parse_cmd_set_obj_output(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_build_output") {
-			if (!parse_cmd_set_build_output(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_build_name") {
-			if (!parse_cmd_set_build_name(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_precompiled_header" || _cur_token.value == "set_pch") {
-			if (!parse_cmd_set_precompiled_header(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "set_run_exec" || _cur_token.value == "set_run_executable") {
-			if (!parse_cmd_set_run_exec(_index, _cur_token, _prev_token)) return false;
-		}
-		else if (_cur_token.value == "add_src_dirs") {
-			if (!parse_cmd_add_dirs(_index, _cur_token, _prev_token, src_dirs)) return false;
-		}
-		else if (_cur_token.value == "add_incl_dirs") {
-			if (!parse_cmd_add_dirs(_index, _cur_token, _prev_token, incl_dirs)) return false;
-		}
-		else if (_cur_token.value == "add_lib_dirs") {
-			if (!parse_cmd_add_dirs(_index, _cur_token, _prev_token, lib_dirs)) return false;
-		}
-		else if (_cur_token.value == "add_static_libs") {
-			if (!parse_cmd_add_strings(_index, _cur_token, _prev_token, static_libs)) return false;
-		}
+		if (!it->second.callback(_index, _cur_token, _prev_token)) return false;
 
 		return true;
 
@@ -402,6 +348,22 @@ namespace CBuild {
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
 
+	}
+
+	bool Parser::parse_cmd_add_src_dirs(u64& _index, Token& _cur_token, Token& _prev_token) {
+		return parse_cmd_add_dirs(_index, _cur_token, _prev_token, src_dirs);
+	}
+
+	bool Parser::parse_cmd_add_incl_dirs(u64& _index, Token& _cur_token, Token& _prev_token) {
+		return parse_cmd_add_dirs(_index, _cur_token, _prev_token, incl_dirs);
+	}
+
+	bool Parser::parse_cmd_add_lib_dirs(u64& _index, Token& _cur_token, Token& _prev_token) {
+		return parse_cmd_add_dirs(_index, _cur_token, _prev_token, lib_dirs);
+	}
+
+	bool Parser::parse_cmd_add_static_libs(u64& _index, Token& _cur_token, Token& _prev_token) {
+		return parse_cmd_add_strings(_index, _cur_token, _prev_token, static_libs);
 	}
 
 	bool Parser::parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _dirs) {

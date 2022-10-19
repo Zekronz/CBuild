@@ -13,7 +13,6 @@ namespace CBuild {
 	enum class Token_Type : uint8_t {
 
 		None,
-		Command,
 		String,
 		Semicolon,
 		End_Of_File,
@@ -48,7 +47,6 @@ namespace CBuild {
 		bool is_digit(s8 _char);
 		bool is_letter(s8 _char);
 		bool is_string_char(s8 _char);
-		bool is_command(const std::string& _str);
 		s8 char_at(const std::string& _source, size_t _index);
 		bool parse_source(const std::string& _source);
 		void print_tokens();

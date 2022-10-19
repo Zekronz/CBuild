@@ -33,27 +33,6 @@ namespace CBuild {
 
 	}
 
-	bool Lexer::is_command(const std::string& _str) {
-
-		if (_str == "set_compiler") return true;
-		if (_str == "set_build_type") return true;
-		if (_str == "set_project_name") return true;
-		if (_str == "set_obj_output") return true;
-		if (_str == "set_build_output") return true;
-		if (_str == "set_build_name") return true;
-		if (_str == "set_precompiled_header") return true;
-		if (_str == "set_pch") return true;
-		if (_str == "set_run_exec") return true;
-		if (_str == "set_run_executable") return true;
-		if (_str == "add_src_dirs") return true;
-		if (_str == "add_incl_dirs") return true;
-		if (_str == "add_lib_dirs") return true;
-		if (_str == "add_static_libs") return true;
-
-		return false;
-
-	}
-
 	s8 Lexer::char_at(const std::string& _source, size_t _index) {
 
 		if (_source.length() <= 0 || _index >= _source.length()) return 0;
@@ -185,8 +164,7 @@ namespace CBuild {
 						--char_pos;
 					}
 
-					Token_Type type = is_command(token_name) ? Token_Type::Command : Token_Type::String;
-					tokens.push_back({ type, token_name, token_line_pos, token_char_pos});
+					tokens.push_back({ Token_Type::String, token_name, token_line_pos, token_char_pos});
 
 				}
 				else {
@@ -262,7 +240,6 @@ namespace CBuild {
 		for (const Token& token : tokens) {
 
 			if (token.type == Token_Type::None) std::cout << "None: ";
-			else if (token.type == Token_Type::Command) std::cout << "Command: ";
 			else if (token.type == Token_Type::String) std::cout << "String: ";
 			else if (token.type == Token_Type::Semicolon) std::cout << "Semicolon: ";
 
