@@ -1,5 +1,6 @@
 # Ignore
 .vs/
+CBuild/x64/
 x64/
 x32/
 
