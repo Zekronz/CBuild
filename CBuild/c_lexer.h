@@ -32,12 +32,6 @@ namespace CBuild {
 		CloseSquare,
 		OpenCurly,
 		CloseCurly,
-		/*OpAdd,
-		OpSub,
-		OpMul,
-		OpDiv,
-		OpEquals,
-		OpCompare,*/
 		Operator,
 		End_Of_File,
 
@@ -70,7 +64,6 @@ namespace CBuild {
 		std::vector<C_Token> tokens;
 		Error_Handler error_handler;
 
-		bool is_valid_path_char(s8 _char);
 		bool is_digit(s8 _char);
 		bool is_letter(s8 _char);
 		bool is_keyword_char(s8 _char);

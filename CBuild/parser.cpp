@@ -682,6 +682,12 @@ namespace CBuild {
 			else if (token.type == C_Token_Type::Include_String) {
 				include_files.push_back(token.value);
 			}
+			else if (token.type == C_Token_Type::Directive && token.value == "#include") {
+
+				--i;
+				continue;
+
+			}
 
 		}
 

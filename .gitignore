@@ -1,7 +1,9 @@
-# Directories
+# Ignore
 .vs/
 x64/
 x32/
 
-# Files
 *.user
+
+# Allow
+!/x64/Release/CBuild.exe

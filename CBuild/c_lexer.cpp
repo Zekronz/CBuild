@@ -3,16 +3,6 @@
 
 namespace CBuild {
 
-	bool C_Lexer::is_valid_path_char(s8 _char) {
-
-		if (_char == '/' || _char == '\\' || _char == '?' || _char == '%' || _char == '*' || _char == ':' || _char == '|' || _char == '"' || _char == '<' || _char == '>' || _char == ',' || _char == ';' || _char == '=' || _char == ' ' || _char == '\t' || _char == '\n' || _char == '\r') {
-			return false;
-		}
-
-		return true;
-
-	}
-
 	bool C_Lexer::is_digit(s8 _char) {
 		return (_char >= '0' && _char <= '9');
 	}
@@ -26,9 +16,7 @@ namespace CBuild {
 	}
 
 	bool C_Lexer::is_keyword(const std::string& _str) {
-
 		return false;
-
 	}
 
 	s8 C_Lexer::char_at(const std::string& _source, size_t _index) {
@@ -53,7 +41,7 @@ namespace CBuild {
 		s64 include_string_start = 0;
 		s64 include_string_char_pos = 0;
 
-		size_t nested_comment_count = 0;
+		//size_t nested_comment_count = 0;
 		size_t par_count = 0;
 		size_t curly_count = 0;
 		size_t square_count = 0;
@@ -188,19 +176,7 @@ namespace CBuild {
 
 				//Closing parenthesis.
 				else if (cur == ')') {
-
-					/*if (par_count == 0) {
-
-						error_handler.set_error(Error_Type::Syntax_Error, "Unexpected symbol found: ')'", line_pos, char_pos);
-						return false;
-
-					}
-					else {
-						--par_count;
-					}*/
-
-					tokens.push_back({C_Token_Type::ClosePar, ")", line_pos, char_pos});
-
+					tokens.push_back({ C_Token_Type::ClosePar, ")", line_pos, char_pos });
 				}
 
 				//Opening square bracket.
@@ -213,19 +189,7 @@ namespace CBuild {
 				
 				//Closing square bracket.
 				else if (cur == ']') {
-
-					/*if (square_count == 0) {
-
-						error_handler.set_error(Error_Type::Syntax_Error, "Unexpected symbol found: ']'", line_pos, char_pos);
-						return false;
-
-					}
-					else {
-						--square_count;
-					}*/
-
-					tokens.push_back({C_Token_Type::CloseSquare, "]", line_pos, char_pos});
-
+					tokens.push_back({ C_Token_Type::CloseSquare, "]", line_pos, char_pos });
 				}
 
 				//Opening curly bracket.
@@ -238,19 +202,7 @@ namespace CBuild {
 				
 				//Closing curly bracket.
 				else if (cur == '}') {
-
-					/*if (curly_count == 0) {
-
-						error_handler.set_error(Error_Type::Syntax_Error, "Unexpected symbol found: '}'", line_pos, char_pos);
-						return false;
-
-					}
-					else {
-						--curly_count;
-					}*/
-
-					tokens.push_back({C_Token_Type::CloseCurly, "}", line_pos, char_pos});
-
+					tokens.push_back({ C_Token_Type::CloseCurly, "}", line_pos, char_pos });
 				}
 
 				//Add.
@@ -560,7 +512,7 @@ namespace CBuild {
 					else if (next == '*') {
 
 						state = C_Lexer_State::Multi_Line_Comment;
-						nested_comment_count = 1;
+						//nested_comment_count = 1;
 
 						++i;
 						++char_pos;
@@ -584,17 +536,6 @@ namespace CBuild {
 
 				}
 
-				//Invalid character.
-				/*else if (cur != ' ' && cur != '\t' && cur != '\n' && cur != '\r') {
-
-					std::string msg = "Unexpected symbol found: '";
-					msg += cur;
-					msg += "'";
-
-					error_handler.set_error(Error_Type::Syntax_Error, msg, line_pos, char_pos);
-					return false;
-
-				}*/
 				//Ignore any other characters.
 				else {
 
@@ -723,7 +664,7 @@ namespace CBuild {
 			//Multi line comment state.
 			else if (state == C_Lexer_State::Multi_Line_Comment) {
 
-				if (cur == '/') {
+				/*if (cur == '/') {
 
 					s8 next = char_at(source, i + 1);
 
@@ -736,21 +677,21 @@ namespace CBuild {
 					}
 
 				}
-				else if (cur == '*') {
+				else*/ if (cur == '*') {
 
 					s8 next = char_at(source, i + 1);
 
 					if (next == '/') {
 
-						--nested_comment_count;
+						//--nested_comment_count;
 						++i;
 						++char_pos;
 
-						if (nested_comment_count == 0) {
+						//if (nested_comment_count == 0) {
 
 							state = C_Lexer_State::Normal;
 
-						}
+						//}
 
 					}
 
@@ -795,7 +736,7 @@ namespace CBuild {
 
 		}*/
 
-		//tokens.push_back({ C_Token_Type::End_Of_File, "EOF", line_pos, char_pos - 1 });
+		tokens.push_back({ C_Token_Type::End_Of_File, "EOF", line_pos, char_pos - 1 });
 
 		return true;
 
@@ -821,12 +762,6 @@ namespace CBuild {
 			else if (token.type == C_Token_Type::Char_Litteral) std::cout << "Char: ";
 			else if (token.type == C_Token_Type::Integer) std::cout << "Integer: ";
 			else if (token.type == C_Token_Type::Float) std::cout << "Float: ";
-			/*else if (token.type == TokenType::OpAdd) std::cout << "OpAdd: ";
-			else if (token.type == TokenType::OpSub) std::cout << "OpSub: ";
-			else if (token.type == TokenType::OpMul) std::cout << "OpMul: ";
-			else if (token.type == TokenType::OpDiv) std::cout << "OpDiv: ";
-			else if (token.type == TokenType::OpEquals) std::cout << "OpEquals: ";
-			else if (token.type == TokenType::OpCompare) std::cout << "OpCompare: ";*/
 			else if (token.type == C_Token_Type::Operator) std::cout << "Operator: ";
 			else if (token.type == C_Token_Type::Dot) std::cout << "Dot: ";
 			else if (token.type == C_Token_Type::Comma) std::cout << "Comma: ";
