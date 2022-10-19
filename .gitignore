@@ -6,4 +6,4 @@ x32/
 *.user
 
 # Allow
-!/x64/Release/CBuild.exe
+!x64/Release/CBuild.exe
