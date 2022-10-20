@@ -724,6 +724,7 @@ namespace CBuild {
 	std::string Parser::create_gcc_build_source_cmd(const std::filesystem::path& _source_file) {
 
 		std::string cmd = create_gcc_base_cmd();
+		cmd += " " + _source_file.string();
 
 		std::filesystem::path obj_path = obj_output / _source_file.filename().replace_extension(".o");
 		File::format_path(obj_path);
@@ -743,16 +744,13 @@ namespace CBuild {
 
 		cmd += " -c " + _pch_file.string() + " -o " + gch_path.string();
 
+		return cmd;
+
 	}
 
 	std::string Parser::create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files) {
 
-		std::string name = "lib" + build_name + ".a";
-
-		std::filesystem::path lib_path = build_output / std::filesystem::u8path(name);
-		File::format_path(lib_path);
-
-		std::string cmd = "ar rcs " + lib_path.string();
+		std::string cmd = "ar rcs " + _lib_file.string();
 
 		for (const std::filesystem::path& file : _obj_files) {
 
@@ -762,12 +760,25 @@ namespace CBuild {
 
 		}
 
-		if (system(cmd.c_str()) != 0) {
+		return cmd;
 
-			CBUILD_ERROR("Error occurred while linking static library.");
-			return false;
+	}
+
+	std::string Parser::create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files) {
+
+		std::string cmd = create_gcc_base_cmd();
+
+		for (const std::filesystem::path& file : _obj_files) {
+
+			if (File::file_exists(file)) {
+				cmd += " " + file.string();
+			}
 
 		}
+
+		cmd += " -o " + _exec_file.string();
+
+		return cmd;
 
 	}
 
@@ -844,11 +855,11 @@ namespace CBuild {
 				
 				u64 time = std::filesystem::last_write_time(precompiled_header).time_since_epoch().count();
 
-				if (_force_rebuild) built_pch = true;
+				if (_force_rebuild || !File::file_exists(std::filesystem::path(precompiled_header).replace_extension(".gch"))) built_pch = true;
 				else {
-
+					
 					if (timestamps.find(precompiled_header.string()) != timestamps.end()) {
-
+						
 						u64 old_time = timestamps[precompiled_header.string()];
 						if (old_time != time) built_pch = true;
 
@@ -862,7 +873,7 @@ namespace CBuild {
 				pch_time = time;
 
 				if (built_pch) {
-
+					
 					cmd = create_gcc_build_pch_cmd(precompiled_header);
 
 					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
@@ -884,7 +895,7 @@ namespace CBuild {
 		std::vector<std::filesystem::path> obj_files;
 
 		for (const std::filesystem::path& src_path : src_dirs) {
-
+			
 			if (!File::directory_exists(src_path)) {
 
 				CBUILD_ERROR("Directory '" + src_path.string() + "' does not exist.");
@@ -893,9 +904,9 @@ namespace CBuild {
 			}
 			
 			if (!File::find_files(src_path, ".c", src_files)) continue;
-
+			
 			for (const std::filesystem::path& file : src_files) {
-				
+
 				std::filesystem::path obj_path = obj_output / file.filename().replace_extension(".o");
 				File::format_path(obj_path);
 				obj_files.push_back(obj_path);
@@ -905,7 +916,7 @@ namespace CBuild {
 
 				cmd = create_gcc_build_source_cmd(file);
 
-				CBUILD_TRACE("Compiling '{}'", src_path.string() + "/" + file.filename().string());
+				CBUILD_TRACE("Compiling '{}'", file.string());
 
 				if (system(cmd.c_str()) != 0) {
 
@@ -928,7 +939,7 @@ namespace CBuild {
 
 		if (built_pch) {
 
-			timestamps[precompiled_header] = pch_time;
+			timestamps[precompiled_header.string()] = pch_time;
 			built_something = true;
 
 		}
@@ -943,7 +954,12 @@ namespace CBuild {
 		//Generate static lib.
 		if (build_type == Build_Type::Static_Lib) {
 
-			cmd = create_gcc_build_static_lib_cmd(obj_files);
+			std::string lib_name = "lib" + build_name + ".a";
+
+			std::filesystem::path lib_path = build_output / std::filesystem::u8path(lib_name);
+			File::format_path(lib_path);
+
+			cmd = create_gcc_build_static_lib_cmd(lib_path, obj_files);
 
 			if (system(cmd.c_str()) != 0) {
 
@@ -952,42 +968,17 @@ namespace CBuild {
 
 			}
 
-			CBUILD_INFO("Generated '{}'", build_output + "/lib" + build_name + ".a");
+			CBUILD_INFO("Generated '{}'", lib_path.string());
 
 		}
 
 		//Generate executable.
 		else if (build_type == Build_Type::Executable) {
 
-			cmd = "gcc";
+			std::filesystem::path exec_path = build_output / std::filesystem::u8path(build_name);
+			File::format_path(exec_path);
 
-			for (const std::string& file : obj_files) {
-
-				if (File::file_exists(file)) {
-					cmd += " " + file;
-				}
-
-			}
-			
-			for (const std::string incl_dir : incl_dirs) {
-				cmd += " -I " + incl_dir;
-			}
-
-			for (const std::string lib_dir : lib_dirs) {
-				cmd += " -L " + lib_dir;
-			}
-
-			if (static_libs.size() > 0) {
-
-				cmd += " -static";
-
-				for (const std::string static_lib : static_libs) {
-					cmd += " -l " + static_lib;
-				}
-
-			}
-
-			cmd += " -o " + build_output + "/" + build_name;
+			cmd = create_gcc_build_exec_cmd(exec_path, obj_files);
 
 			if (system(cmd.c_str()) != 0) {
 
@@ -996,11 +987,11 @@ namespace CBuild {
 
 			}
 
-			CBUILD_INFO("Generated '{}'", build_output + "/" + build_name + ".exe");
+			CBUILD_INFO("Generated '{}'", exec_path.string() + ".exe");
 
 			if (run_exec) {
 
-				cmd = "cd " + build_output + " && \"" + build_name + "\"";
+				cmd = "cd " + build_output.string() + " && \"" + build_name + "\"";
 				system(cmd.c_str());
 
 			}

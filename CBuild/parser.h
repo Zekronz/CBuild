@@ -103,6 +103,7 @@ namespace CBuild {
 		std::string create_gcc_build_source_cmd(const std::filesystem::path& _source_file);
 		std::string create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file);
 		std::string create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files);
+		std::string create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files);
 
 		bool should_build();
 		bool build(const std::filesystem::path& _projects_path, bool _force_rebuild = false);

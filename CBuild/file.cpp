@@ -56,14 +56,21 @@ namespace CBuild {
 
 	bool File::find_files(const std::filesystem::path& _path, const std::string _extension, std::vector<std::filesystem::path>& _files) {
 
-		if (!file_exists(_path)) return false;
+		if (!directory_exists(_path)) return false;
 
 		_files.clear();
 		
+		std::filesystem::path file;
+
 		for (const auto& entry : std::filesystem::directory_iterator(_path)) {
 			
 			if (_extension.empty() || entry.path().extension() == _extension) {
-				_files.push_back(entry.path());
+
+				file = entry.path();
+				format_path(file);
+
+				_files.push_back(file);
+
 			}
 
 		}
