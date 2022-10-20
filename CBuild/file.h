@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include "types.h"
+#include "utf8_string.h"
 
 namespace CBuild {
 

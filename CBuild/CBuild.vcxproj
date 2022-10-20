@@ -156,6 +156,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="string_helper.cpp" />
+    <ClCompile Include="utf8_string.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="c_lexer.h" />
@@ -167,6 +168,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="string_helper.h" />
     <ClInclude Include="types.h" />
+    <ClInclude Include="utf8_string.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

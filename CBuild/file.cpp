@@ -23,19 +23,22 @@ namespace CBuild {
 
 	void File::format_path(std::filesystem::path& _path) {
 
-		//@TODO: Add unicode support.
-		std::string path_str = _path.string();
+		UTF8_String path_str = _path.string();
+
+		//@TODO: Preferred separator.
+		char preferred = std::filesystem::path::preferred_separator == L'\\' ? '\\' : '/';
+		char other = std::filesystem::path::preferred_separator == L'\\' ? '/' : '\\';
 
 		for (u64 i = 0; i < path_str.size(); ++i) {
-			if (path_str[i] == '\\') path_str[i] = '/';
+			if (path_str[i] == (u32)other) path_str[i] = (u32)preferred;
 		}
 
-		if (path_str[path_str.length() - 1] == '/') path_str.erase(path_str.length() - 1, 1);
+		if (path_str[0] == (u32)preferred) path_str.erase(0, 1);
+		if (path_str[path_str.length() - 1] == (u32)preferred) path_str.erase(path_str.length() - 1, 1);
 
-		trim_path(path_str);
-		if (path_str == "") path_str = "./";
+		path_str.trim();
 
-		_path = std::filesystem::u8path(path_str);
+		_path = std::filesystem::u8path(path_str.);
 
 	}
 
