@@ -12,6 +12,7 @@ namespace CBuild {
 
 	Parser::Parser() {
 
+		//Commands.
 		cmds["set_compiler"]			= { COMMAND_FUNC(Parser::parse_cmd_set_compiler) };
 		cmds["set_project_name"]		= { COMMAND_FUNC(Parser::parse_cmd_set_project_name) };
 		cmds["set_build_type"]			= { COMMAND_FUNC(Parser::parse_cmd_set_build_type) };
@@ -585,10 +586,10 @@ namespace CBuild {
 		//Rebuild source file if object file does not exist.
 		if (_path.extension().string() == ".c") {
 
-			std::filesystem::path obj_file_path = obj_output / _path.filename().replace_extension(".o");//+ "/" + _path.stem().string() + ".o";
+			std::filesystem::path obj_file_path = obj_output / _path.filename().replace_extension(".o");
 			File::format_path(obj_file_path);
 
-			if (!File::file_exists(obj_file_path)) should_rebuild = true; //@TODO: TEST THIS
+			if (!File::file_exists(obj_file_path)) should_rebuild = true;
 
 		}
 

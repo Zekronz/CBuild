@@ -41,7 +41,6 @@ namespace CBuild {
 		s64 include_string_start = 0;
 		s64 include_string_char_pos = 0;
 
-		//size_t nested_comment_count = 0;
 		size_t par_count = 0;
 		size_t curly_count = 0;
 		size_t square_count = 0;
@@ -59,6 +58,7 @@ namespace CBuild {
 
 			s8 cur = source[i];
 
+			//New line.
 			if (cur == '\n') {
 
 				if (check_for_include_string) {
@@ -205,10 +205,12 @@ namespace CBuild {
 					tokens.push_back({ C_Token_Type::CloseCurly, "}", line_pos, char_pos });
 				}
 
-				//Add.
+				//Plus.
 				else if (cur == '+') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Plus plus.
 					if (next == '+') {
 
 						tokens.push_back({ C_Token_Type::Operator, "++", line_pos, char_pos });
@@ -217,6 +219,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Plus equals.
 					else if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "+=", line_pos, char_pos });
@@ -225,15 +229,19 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Plus.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "+", line_pos, char_pos });
 					}
 				}
 
-				//Subtract.
+				//Minus.
 				else if (cur == '-') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Mins minus.
 					if (next == '-') {
 
 						tokens.push_back({ C_Token_Type::Operator, "--", line_pos, char_pos });
@@ -242,7 +250,9 @@ namespace CBuild {
 						++char_pos;
 
 					}
-					else if (next == '-') {
+
+					//Mins equals.
+					else if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "-=", line_pos, char_pos });
 
@@ -250,6 +260,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Minus.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "-", line_pos, char_pos });
 					}
@@ -259,6 +271,8 @@ namespace CBuild {
 				else if (cur == '*') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Multiply equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "*=", line_pos, char_pos });
@@ -267,6 +281,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Multiply.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "*", line_pos, char_pos });
 					}
@@ -276,6 +292,8 @@ namespace CBuild {
 				else if (cur == '%') {
 					
 					s8 next = char_at(source, i + 1);
+
+					//Modulus equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "%=", line_pos, char_pos });
@@ -284,16 +302,20 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Modulus.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "%", line_pos, char_pos });
 					}
 
 				}
 
-				//Equals/compare.
+				//Equals.
 				else if (cur == '=') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Equals equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "==", line_pos, char_pos });
@@ -302,6 +324,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Equals.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "=", line_pos, char_pos });
 					}
@@ -312,6 +336,8 @@ namespace CBuild {
 				else if (cur == '!') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Not equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "!=", line_pos, char_pos });
@@ -320,6 +346,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Not.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "!", line_pos, char_pos });
 					}
@@ -330,6 +358,8 @@ namespace CBuild {
 				else if (cur == '>') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Greater equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, ">=", line_pos, char_pos });
@@ -341,6 +371,8 @@ namespace CBuild {
 					else if (next == '>') {
 
 						next = char_at(source, i + 1);
+
+						//Bitwise right shift equals.
 						if (next == '=') {
 
 							tokens.push_back({ C_Token_Type::Operator, ">>=", line_pos, char_pos });
@@ -349,6 +381,8 @@ namespace CBuild {
 							++char_pos;
 
 						}
+
+						//Bitwise right shift.
 						else {
 							tokens.push_back({ C_Token_Type::Operator, ">>", line_pos, char_pos });
 						}
@@ -357,6 +391,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Greater.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, ">", line_pos, char_pos });
 					}
@@ -367,6 +403,8 @@ namespace CBuild {
 				else if (cur == '<') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Less equals.
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "<=", line_pos, char_pos });
@@ -378,6 +416,8 @@ namespace CBuild {
 					else if (next == '<') {
 
 						next = char_at(source, i + 1);
+
+						//Bitwise left shift equals.
 						if (next == '=') {
 
 							tokens.push_back({ C_Token_Type::Operator, "<<=", line_pos, char_pos });
@@ -386,6 +426,8 @@ namespace CBuild {
 							++char_pos;
 
 						}
+
+						//Bitwise left shift.
 						else {
 							tokens.push_back({ C_Token_Type::Operator, "<<", line_pos, char_pos });
 						}
@@ -396,6 +438,7 @@ namespace CBuild {
 					}
 					else {
 
+						//Include string.
 						if (check_for_include_string) {
 
 							state = C_Lexer_State::Include_String;
@@ -405,6 +448,8 @@ namespace CBuild {
 							token_char_pos = char_pos;
 
 						}
+
+						//Less.
 						else {
 							tokens.push_back({ C_Token_Type::Operator, "<", line_pos, char_pos });
 						}
@@ -417,6 +462,8 @@ namespace CBuild {
 				else if (cur == '&') {
 
 					s8 next = char_at(source, i + 1);
+
+					//And and.
 					if (next == '&') {
 
 						tokens.push_back({ C_Token_Type::Operator, "&&", line_pos, char_pos });
@@ -425,6 +472,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//And equals.
 					else if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "&=", line_pos, char_pos });
@@ -433,6 +482,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//And.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "&", line_pos, char_pos });
 					}
@@ -443,6 +494,8 @@ namespace CBuild {
 				else if (cur == '|') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Or or.
 					if (next == '|') {
 
 						tokens.push_back({ C_Token_Type::Operator, "||", line_pos, char_pos });
@@ -451,6 +504,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Or equals.
 					else if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "|=", line_pos, char_pos });
@@ -459,16 +514,20 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Or.
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "|", line_pos, char_pos });
 					}
 
 				}
 
-				//Bitwise ^
+				//Bitwise ^ .
 				else if (cur == '^') {
 
 					s8 next = char_at(source, i + 1);
+
+					//Bitwise ^= .
 					if (next == '=') {
 
 						tokens.push_back({ C_Token_Type::Operator, "^=", line_pos, char_pos });
@@ -477,6 +536,8 @@ namespace CBuild {
 						++char_pos;
 
 					}
+
+					//Bitwise ^ .
 					else {
 						tokens.push_back({ C_Token_Type::Operator, "^", line_pos, char_pos });
 					}
@@ -512,7 +573,6 @@ namespace CBuild {
 					else if (next == '*') {
 
 						state = C_Lexer_State::Multi_Line_Comment;
-						//nested_comment_count = 1;
 
 						++i;
 						++char_pos;
@@ -664,34 +724,16 @@ namespace CBuild {
 			//Multi line comment state.
 			else if (state == C_Lexer_State::Multi_Line_Comment) {
 
-				/*if (cur == '/') {
-
-					s8 next = char_at(source, i + 1);
-
-					if (next == '*') {
-
-						++nested_comment_count;
-						++i;
-						++char_pos;
-
-					}
-
-				}
-				else*/ if (cur == '*') {
+				if (cur == '*') {
 
 					s8 next = char_at(source, i + 1);
 
 					if (next == '/') {
 
-						//--nested_comment_count;
 						++i;
 						++char_pos;
 
-						//if (nested_comment_count == 0) {
-
-							state = C_Lexer_State::Normal;
-
-						//}
+						state = C_Lexer_State::Normal;
 
 					}
 
@@ -707,34 +749,6 @@ namespace CBuild {
 			increment_char_pos = true;
 
 		}
-
-		/*if (state == C_Lexer_State::String) {
-
-			error_handler.set_error(Error_Type::Syntax_Error, "End of string not found.", line_pos, char_pos);
-			return false;
-
-		}*/
-
-		/*if (par_count > 0) {
-
-			error_handler.set_error(Error_Type::Syntax_Error, "Symbol expected: ')'", line_pos, char_pos);
-			return false;
-
-		}
-
-		if (square_count > 0) {
-
-			error_handler.set_error(Error_Type::Syntax_Error, "Symbol expected: ']'", line_pos, char_pos);
-			return false;
-
-		}
-
-		if (curly_count > 0) {
-
-			error_handler.set_error(Error_Type::Syntax_Error, "Symbol expected: '}'", line_pos, char_pos);
-			return false;
-
-		}*/
 
 		tokens.push_back({ C_Token_Type::End_Of_File, "EOF", line_pos, char_pos - 1 });
 

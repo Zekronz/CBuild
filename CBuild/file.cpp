@@ -4,28 +4,10 @@
 
 namespace CBuild {
 
-	void File::trim_path(std::string& _path) {
-
-		if (_path.length() <= 0) return;
-
-		while (_path.length() > 0 && (_path[0] == ' ' || _path[0] == '/')) _path.erase(0, 1);
-		while (_path.length() > 0 && (_path[_path.length() - 1] == ' ' || _path[_path.length() - 1] == '/')) _path.erase(_path.length() - 1, 1);
-
-		if (_path.length() >= 2) {
-
-			if (_path[0] == '.' && _path[1] == '/') {
-				_path.erase(0, 2);
-			}
-
-		}
-
-	}
-
 	void File::format_path(std::filesystem::path& _path) {
 
-		UTF8_String path_str = _path.string();
+		std::string path_str = _path.string();
 
-		//@TODO: Preferred separator.
 		char preferred = std::filesystem::path::preferred_separator == L'\\' ? '\\' : '/';
 		char other = std::filesystem::path::preferred_separator == L'\\' ? '/' : '\\';
 
@@ -33,12 +15,12 @@ namespace CBuild {
 			if (path_str[i] == (u32)other) path_str[i] = (u32)preferred;
 		}
 
+		String_Helper::trim(path_str);
+
 		if (path_str[0] == (u32)preferred) path_str.erase(0, 1);
 		if (path_str[path_str.length() - 1] == (u32)preferred) path_str.erase(path_str.length() - 1, 1);
 
-		path_str.trim();
-
-		_path = std::filesystem::u8path(path_str.);
+		_path = std::filesystem::u8path(path_str);
 
 	}
 
