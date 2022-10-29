@@ -62,6 +62,8 @@ namespace CBuild {
 	struct C_Lexer {
 
 		std::vector<C_Token> tokens;
+		std::vector<u64> include_indices;
+
 		Error_Handler error_handler;
 
 		bool is_digit(s8 _char);

@@ -536,7 +536,7 @@ namespace CBuild {
 		c_lexer.clear();
 		c_lexer.parse_source(source);
 
-		for (u64 i = 0; i < c_lexer.tokens.size(); ++i) {
+		/*for (u64 i = 0; i < c_lexer.tokens.size(); ++i) {
 
 			C_Token& token = c_lexer.tokens[i];
 			if (!(token.type == C_Token_Type::Directive && token.value == "#include")) continue;
@@ -557,6 +557,26 @@ namespace CBuild {
 				--i;
 				continue;
 
+			}
+
+		}*/
+
+		for (u64 i = 0; i < c_lexer.include_indices.size(); ++i) {
+
+			u64 ind = c_lexer.include_indices[i];
+
+			C_Token& token = c_lexer.tokens[ind];
+
+			++ind;
+			if (ind >= c_lexer.tokens.size()) continue;
+
+			token = c_lexer.tokens[ind];
+
+			if (token.type == C_Token_Type::String) {
+				local_files.push_back(token.value);
+			}
+			else if (token.type == C_Token_Type::Include_String) {
+				include_files.push_back(token.value);
 			}
 
 		}

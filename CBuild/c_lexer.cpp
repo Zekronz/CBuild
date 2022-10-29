@@ -30,6 +30,7 @@ namespace CBuild {
 
 		std::string source = _source + " ";
 		tokens.clear();
+		include_indices.clear();
 
 		C_Lexer_State state = C_Lexer_State::Normal;
 		std::string token_name = "";
@@ -631,6 +632,8 @@ namespace CBuild {
 						check_for_include_string = true;
 						include_string_start = i + 1;
 						include_string_char_pos = char_pos + 1;
+
+						include_indices.push_back(tokens.size() - 1);
 
 					}
 
