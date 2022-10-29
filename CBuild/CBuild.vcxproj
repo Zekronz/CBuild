@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="config.cpp" />
     <ClCompile Include="c_lexer.cpp" />
     <ClCompile Include="error_handler.cpp" />
     <ClCompile Include="file.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="string_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="config.h" />
     <ClInclude Include="c_lexer.h" />
     <ClInclude Include="error_handler.h" />
     <ClInclude Include="file.h" />

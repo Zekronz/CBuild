@@ -10,7 +10,7 @@ namespace CBuild {
 
 	struct Error_Handler;
 
-	enum class C_Token_Type : uint8_t {
+	enum class C_Token_Type : u8 {
 
 		None,
 		Identifier,
@@ -47,7 +47,7 @@ namespace CBuild {
 
 	};
 
-	enum class C_Lexer_State : uint8_t {
+	enum class C_Lexer_State : u8 {
 
 		Normal,
 		Single_Line_Comment,

@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
 	std::string input_file = "";
 
 	bool flag_force_rebuild = false;
+	Config_Type config_type = Config_Type::Debug;
 
 	for (int i = 1; i < argc; ++i) {
 
@@ -35,6 +36,8 @@ int main(int argc, char** argv) {
 
 			flags.push_back(flag);
 			if (flag == "-force_rebuild" || flag == "-fr") flag_force_rebuild = true;
+			else if (flag == "-release") config_type = Config_Type::Release;
+			else CBUILD_WARN("Unknown flag '{}' found.", flag);
 
 		}
 
@@ -43,7 +46,7 @@ int main(int argc, char** argv) {
 	if (input_file.empty()) {
 
 		CBUILD_ERROR("No input file specified.");
-		return 0;
+		return 1;
 
 	}
 
@@ -54,7 +57,7 @@ int main(int argc, char** argv) {
 	if (!File::file_exists(input_file_path)) {
 
 		CBUILD_ERROR("The specified input file does not exist.");
-		return 0;
+		return 1;
 
 	}
 	
@@ -62,7 +65,7 @@ int main(int argc, char** argv) {
 	if (!File::read_text_file(input_file_path, source)) {
 
 		CBUILD_ERROR("Error reading input file.");
-		return 0;
+		return 1;
 
 	}
 	
@@ -73,7 +76,7 @@ int main(int argc, char** argv) {
 	if (lexer.error_handler.has_error()) {
 
 		CBUILD_ERROR(lexer.error_handler.get_error_message());
-		return 0;
+		return 1;
 
 	}
 	
@@ -83,14 +86,14 @@ int main(int argc, char** argv) {
 	if (parser.error_handler.has_error()) {
 
 		CBUILD_ERROR(parser.error_handler.get_error_message());
-		return 0;
+		return 1;
 
 	}
 	
 	if (!parser.should_build()) {
 
 		CBUILD_TRACE("Nothing to build.");
-		return 0;
+		return 1;
 
 	}
 	
@@ -99,20 +102,22 @@ int main(int argc, char** argv) {
 	std::filesystem::path exec_path = std::filesystem::u8path(exec_dir);
 
 	char buffer[1024];
-	DWORD result = GetModuleFileNameA(NULL, &buffer[0], 1024);
+	DWORD result = GetModuleFileNameA(NULL, &buffer[0], 1024); //Gets the absolute executable path of CBuild.
 	if (result != 0 && result < 1024)  exec_path = std::filesystem::u8path(buffer);
 
 	exec_path = exec_path.has_parent_path() ? exec_path.parent_path() : "";
 	File::format_path(exec_path);
 	
-	std::filesystem::path projects_path = exec_path / std::filesystem::u8path("cbuild_timestamps");
+	std::filesystem::path projects_path = exec_path / std::filesystem::u8path("configs");
 	
 	if (!std::filesystem::is_directory(projects_path)) {
 		std::filesystem::create_directory(projects_path);
 	}
 
 	//Build.
-	parser.build(projects_path, flag_force_rebuild);
+	if (!parser.build(projects_path, flag_force_rebuild, config_type)) {
+		return 1;
+	}
 
 	return 0;
 

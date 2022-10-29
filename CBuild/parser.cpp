@@ -468,100 +468,7 @@ namespace CBuild {
 
 	}
 
-	void Parser::parse_timestamps(std::string& _data) {
-
-		_data += "\n";
-
-		u8 state = 0;
-		std::string token;
-
-		std::filesystem::path path;
-
-		for (const char& c : _data) {
-
-			//File name.
-			if (state == 0) {
-
-				if (c == '\n' || c == '\r' || c == '\t') {
-					token = "";
-				}
-				else if (c == ' ') {
-					
-					if (!token.empty()) {
-
-						path = std::filesystem::u8path(token);
-						File::format_path(path);
-
-						if (!File::file_exists(path)) {
-							state = 0;
-						}
-						else {
-							state = 1;
-						}
-
-						token = "";
-
-					}
-
-				}
-				else {
-					token += c;
-				}
-
-			}
-
-			//Timestamp.
-			else if (state == 1) {
-
-				if (c == ' ' || c == '\n' || c == '\r' || c == '\t') {
-
-					if (!token.empty()) {
-
-						std::stringstream stream(token);
-						u64 time;
-						stream >> time;
-
-						timestamps[path.string()] = time;
-
-					}
-
-					token = "";
-					state = 0;
-
-				}
-				else if (!lexer->is_digit(c)) {
-
-					token = "";
-					state = 0;
-
-				}
-				else {
-					token += c;
-				}
-
-			}
-
-		}
-
-	}
-
-	void Parser::write_timestamps(const std::filesystem::path& _path) {
-
-		std::string text = "";
-
-		auto it = timestamps.begin();
-		while (it != timestamps.end()) {
-
-			text += it->first + " " + std::to_string(it->second) + "\n";
-			++it;
-
-		}
-
-		File::write_text_file(_path, text);
-
-	}
-
-	bool Parser::parse_include_directives(const std::filesystem::path& _path) {
+	bool Parser::parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type) {
 
 		//@TODO: Standard libraries?
 
@@ -584,9 +491,11 @@ namespace CBuild {
 		}
 
 		//Rebuild source file if object file does not exist.
+		std::filesystem::path obj_output_path = get_obj_output_path(_config_type);
+
 		if (_path.extension().string() == ".c") {
 
-			std::filesystem::path obj_file_path = obj_output / _path.filename().replace_extension(".o");
+			std::filesystem::path obj_file_path = obj_output_path / _path.filename().replace_extension(".o");
 			File::format_path(obj_file_path);
 
 			if (!File::file_exists(obj_file_path)) should_rebuild = true;
@@ -595,13 +504,15 @@ namespace CBuild {
 
 		//Compare timestamps.
 		//@TODO: Check checksum instead?
+		Config_Timestamps* timestamps = config.get_config_timestamps(_config_type);
+
 		u64 time = std::filesystem::last_write_time(_path).time_since_epoch().count();
 
 		if (!should_rebuild) {
 
-			if (timestamps.find(_path.string()) != timestamps.end()) {
+			if (timestamps != nullptr && timestamps->timestamps.find(_path.string()) != timestamps->timestamps.end()) {
 
-				u64 old_time = timestamps[_path.string()];
+				u64 old_time = timestamps->timestamps[_path.string()];
 				if (old_time != time) should_rebuild = true;
 
 			}
@@ -672,7 +583,7 @@ namespace CBuild {
 
 			}
 
-			if (parse_include_directives(local_path)) should_rebuild = true;
+			if (parse_source_and_header_files(local_path, _config_type)) should_rebuild = true;
 
 		}
 
@@ -685,7 +596,7 @@ namespace CBuild {
 				File::format_path(incl_path);
 
 				if (!File::file_exists(incl_path)) continue;
-				if (parse_include_directives(incl_path)) should_rebuild = true;
+				if (parse_source_and_header_files(incl_path, _config_type)) should_rebuild = true;
 
 			}
 
@@ -696,9 +607,19 @@ namespace CBuild {
 
 	}
 
-	std::string Parser::create_gcc_base_cmd() {
+	std::filesystem::path Parser::get_obj_output_path(Config_Type _config_type) {
+		return obj_output / std::filesystem::u8path(config.config_type_to_string(_config_type));
+	}
+
+	std::filesystem::path Parser::get_build_output_path(Config_Type _config_type) {
+		return build_output / std::filesystem::u8path(config.config_type_to_string(_config_type));
+	}
+
+	std::string Parser::create_gcc_base_cmd(Config_Type _config_type) {
 
 		std::string cmd = "gcc -Wall";
+		if (_config_type == Config_Type::Release) cmd += " -O3";
+		else cmd += " -g";
 
 		for (const std::filesystem::path& incl_dir : incl_dirs) {
 			cmd += " -I " + incl_dir.string();
@@ -722,12 +643,12 @@ namespace CBuild {
 
 	}
 
-	std::string Parser::create_gcc_build_source_cmd(const std::filesystem::path& _source_file) {
+	std::string Parser::create_gcc_build_source_cmd(const std::filesystem::path& _source_file, Config_Type _config_type) {
 
-		std::string cmd = create_gcc_base_cmd();
+		std::string cmd = create_gcc_base_cmd(_config_type);
 		cmd += " " + _source_file.string();
 
-		std::filesystem::path obj_path = obj_output / _source_file.filename().replace_extension(".o");
+		std::filesystem::path obj_path = get_obj_output_path(_config_type) / _source_file.filename().replace_extension(".o");
 		File::format_path(obj_path);
 
 		cmd += " -c -o " + obj_path.string();
@@ -736,14 +657,32 @@ namespace CBuild {
 
 	}
 
-	std::string Parser::create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file) {
+	std::string Parser::create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file, Config_Type _config_type) {
 
-		std::string cmd = create_gcc_base_cmd();
+		std::string cmd = create_gcc_base_cmd(_config_type);
 
 		std::filesystem::path gch_path = _pch_file;
 		gch_path.replace_extension(".gch");
 
 		cmd += " -c " + _pch_file.string() + " -o " + gch_path.string();
+
+		return cmd;
+
+	}
+
+	std::string Parser::create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type) {
+
+		std::string cmd = create_gcc_base_cmd(_config_type);
+
+		for (const std::filesystem::path& file : _obj_files) {
+
+			if (File::file_exists(file)) {
+				cmd += " " + file.string();
+			}
+
+		}
+
+		cmd += " -o " + _exec_file.string();
 
 		return cmd;
 
@@ -765,66 +704,53 @@ namespace CBuild {
 
 	}
 
-	std::string Parser::create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files) {
-
-		std::string cmd = create_gcc_base_cmd();
-
-		for (const std::filesystem::path& file : _obj_files) {
-
-			if (File::file_exists(file)) {
-				cmd += " " + file.string();
-			}
-
-		}
-
-		cmd += " -o " + _exec_file.string();
-
-		return cmd;
-
-	}
-
 	bool Parser::should_build() {
 		return (src_dirs.size() > 0);
 	}
 
-	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild) {
+	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild, Config_Type _config_type) {
 
 		if (compiler_type == Compiler_Type::GCC) {
-			return build_gcc(_projects_path, _force_rebuild);
+			return build_gcc(_projects_path, _force_rebuild, _config_type);
 		}
 
 		return true;
 
 	}
 
-	bool Parser::build_gcc(const std::filesystem::path& _projects_path, bool _force_rebuild) {
-
-		//@TODO: Debug/release.
-		//gcc -c src/thread.c -Wall -I . -I includes -L libraries/glfw3_x64/ -static -l glfw3 -l gdi32 -l winmm
+	bool Parser::build_gcc(const std::filesystem::path& _projects_path, bool _force_rebuild, Config_Type _config_type) {
 
 		std::string cmd;
+
+		std::filesystem::path obj_output_path = get_obj_output_path(_config_type);
+		std::filesystem::path build_output_path = get_build_output_path(_config_type);
+
+		//Create obj and build directories.
+		if (!std::filesystem::is_directory(obj_output)) {
+			std::filesystem::create_directory(obj_output);
+		}
+
+		if (!std::filesystem::is_directory(obj_output_path)) {
+			std::filesystem::create_directory(obj_output_path);
+		}
 
 		if (!std::filesystem::is_directory(build_output)) {
 			std::filesystem::create_directory(build_output);
 		}
 
-		if (!std::filesystem::is_directory(obj_output)) {
-			std::filesystem::create_directory(obj_output);
+		if (!std::filesystem::is_directory(build_output_path)) {
+			std::filesystem::create_directory(build_output_path);
 		}
 
 		bool built_something = false;
 
-		std::filesystem::path timestamps_path = _projects_path / std::filesystem::u8path(project_name + ".cbuild_timestamp");
-		File::format_path(timestamps_path);
+		//Load config file.
+		config.clear_config();
 
-		if (File::file_exists(timestamps_path)) {
+		std::filesystem::path config_path = _projects_path / std::filesystem::u8path(project_name + ".cbuild_config");
+		config.load_config(config_path);
 
-			std::string data;
-			if (File::read_text_file(timestamps_path, data)) {
-				parse_timestamps(data);
-			}
-
-		}
+		Config_Timestamps* timestamps = config.get_config_timestamps(_config_type);
 
 		//Compile precompiled header.
 		bool built_pch = false;
@@ -857,11 +783,14 @@ namespace CBuild {
 				u64 time = std::filesystem::last_write_time(precompiled_header).time_since_epoch().count();
 
 				if (_force_rebuild || !File::file_exists(std::filesystem::path(precompiled_header).replace_extension(".gch"))) built_pch = true;
+				else if (config.last_used_type != _config_type) {
+					built_pch = true;
+				}
 				else {
 					
-					if (timestamps.find(precompiled_header.string()) != timestamps.end()) {
+					if (timestamps != nullptr && timestamps->timestamps.find(precompiled_header.string()) != timestamps->timestamps.end()) {
 						
-						u64 old_time = timestamps[precompiled_header.string()];
+						u64 old_time = timestamps->timestamps[precompiled_header.string()];
 						if (old_time != time) built_pch = true;
 
 					}
@@ -875,7 +804,7 @@ namespace CBuild {
 
 				if (built_pch) {
 					
-					cmd = create_gcc_build_pch_cmd(precompiled_header);
+					cmd = create_gcc_build_pch_cmd(precompiled_header, _config_type);
 
 					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
 					if (system(cmd.c_str()) != 0) {
@@ -891,6 +820,8 @@ namespace CBuild {
 
 		}
 
+		config.last_used_type = _config_type;
+		
 		//Compile source files.
 		std::vector<std::filesystem::path> src_files;
 		std::vector<std::filesystem::path> obj_files;
@@ -908,21 +839,20 @@ namespace CBuild {
 			
 			for (const std::filesystem::path& file : src_files) {
 
-				std::filesystem::path obj_path = obj_output / file.filename().replace_extension(".o");
-				File::format_path(obj_path);
+				std::filesystem::path obj_path = obj_output_path / file.filename().replace_extension(".o");
 				obj_files.push_back(obj_path);
 
-				bool built = parse_include_directives(file);
+				bool built = parse_source_and_header_files(file, _config_type);
 				if (!built && !_force_rebuild) continue;
 
-				cmd = create_gcc_build_source_cmd(file);
+				cmd = create_gcc_build_source_cmd(file, _config_type);
 
 				CBUILD_TRACE("Compiling '{}'", file.string());
 
 				if (system(cmd.c_str()) != 0) {
 
 					CBUILD_ERROR("An error occurred.");
-					write_timestamps(timestamps_path);
+					config.save_config(config_path);
 
 					return false;
 
@@ -935,12 +865,12 @@ namespace CBuild {
 		}
 
 		for (const Checked_File& checked_file : checked_files) {
-			timestamps[checked_file.path.string()] = checked_file.time;
+			config.set_config_timestamp(_config_type, checked_file.path, checked_file.time);
 		}
 
 		if (built_pch) {
 
-			timestamps[precompiled_header.string()] = pch_time;
+			config.set_config_timestamp(_config_type, precompiled_header, pch_time);
 			built_something = true;
 
 		}
@@ -949,16 +879,14 @@ namespace CBuild {
 			CBUILD_TRACE("Everything is up-to-date.");
 		}
 		else {
-			write_timestamps(timestamps_path);
+			config.save_config(config_path);
 		}
 
 		//Generate static lib.
 		if (build_type == Build_Type::Static_Lib) {
 
 			std::string lib_name = "lib" + build_name + ".a";
-
-			std::filesystem::path lib_path = build_output / std::filesystem::u8path(lib_name);
-			File::format_path(lib_path);
+			std::filesystem::path lib_path = build_output_path / std::filesystem::u8path(lib_name);
 
 			cmd = create_gcc_build_static_lib_cmd(lib_path, obj_files);
 
@@ -976,10 +904,9 @@ namespace CBuild {
 		//Generate executable.
 		else if (build_type == Build_Type::Executable) {
 
-			std::filesystem::path exec_path = build_output / std::filesystem::u8path(build_name);
-			File::format_path(exec_path);
+			std::filesystem::path exec_path = build_output_path / std::filesystem::u8path(build_name);
 
-			cmd = create_gcc_build_exec_cmd(exec_path, obj_files);
+			cmd = create_gcc_build_exec_cmd(exec_path, obj_files, _config_type);
 
 			if (system(cmd.c_str()) != 0) {
 
@@ -992,7 +919,7 @@ namespace CBuild {
 
 			if (run_exec) {
 
-				cmd = "cd " + build_output.string() + " && \"" + build_name + "\"";
+				cmd = "cd " + build_output_path.string() + " && \"" + build_name + "\"";
 				system(cmd.c_str());
 
 			}

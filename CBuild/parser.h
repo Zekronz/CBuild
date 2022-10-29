@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <filesystem>
-#include <map>
 #include <sstream>
 #include <unordered_map>
 
@@ -10,19 +9,20 @@
 #include "error_handler.h"
 #include "c_lexer.h"
 #include "string_helper.h"
+#include "config.h"
 
 namespace CBuild {
 
 	struct Lexer;
 	struct Token;
 
-	enum class Compiler_Type : uint8_t {
+	enum class Compiler_Type : u8 {
 
 		GCC,
 
 	};
 
-	enum class Build_Type: uint8_t {
+	enum class Build_Type: u8 {
 
 		Executable,
 		Static_Lib,
@@ -48,6 +48,7 @@ namespace CBuild {
 		Error_Handler error_handler;
 		Lexer* lexer = nullptr;
 		C_Lexer c_lexer;
+		Config config;
 
 		std::unordered_map<std::string, Command> cmds;
 
@@ -67,7 +68,6 @@ namespace CBuild {
 
 		bool run_exec = false;
 
-		std::map<std::string, u64> timestamps;
 		std::vector<Checked_File> checked_files;
 
 		Parser();
@@ -94,20 +94,20 @@ namespace CBuild {
 		bool parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _dirs);
 		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings);
 
-		void parse_timestamps(std::string& _data);
-		void write_timestamps(const std::filesystem::path& _path);
+		bool parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type);
 
-		bool parse_include_directives(const std::filesystem::path& _path);
+		std::filesystem::path get_obj_output_path(Config_Type _config_type);
+		std::filesystem::path get_build_output_path(Config_Type _config_type);
 
-		std::string create_gcc_base_cmd();
-		std::string create_gcc_build_source_cmd(const std::filesystem::path& _source_file);
-		std::string create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file);
+		std::string create_gcc_base_cmd(Config_Type _config_type);
+		std::string create_gcc_build_source_cmd(const std::filesystem::path& _source_file, Config_Type _config_type);
+		std::string create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file, Config_Type _config_type);
+		std::string create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type);
 		std::string create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files);
-		std::string create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files);
 
 		bool should_build();
-		bool build(const std::filesystem::path& _projects_path, bool _force_rebuild = false);
-		bool build_gcc(const std::filesystem::path& _projects_path, bool _force_rebuild = false);
+		bool build(const std::filesystem::path& _projects_path, bool _force_rebuild = false, Config_Type _config_type = Config_Type::Debug);
+		bool build_gcc(const std::filesystem::path& _projects_path, bool _force_rebuild = false, Config_Type _config_type = Config_Type::Debug);
 
 	};
 
