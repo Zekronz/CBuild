@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\Fabian\Documents\Visual Studio 2019\Libraries\Includes_x64;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Fabian\Documents\Visual Studio 2019\Libraries\Libs_x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\Includes;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)\Includes;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
