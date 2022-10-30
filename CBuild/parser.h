@@ -19,6 +19,7 @@ namespace CBuild {
 	enum class Compiler_Type : u8 {
 
 		GCC,
+		Clang,
 
 	};
 
@@ -99,15 +100,15 @@ namespace CBuild {
 		std::filesystem::path get_obj_output_path(Config_Type _config_type);
 		std::filesystem::path get_build_output_path(Config_Type _config_type);
 
-		std::string create_gcc_base_cmd(Config_Type _config_type);
-		std::string create_gcc_build_source_cmd(const std::filesystem::path& _source_file, Config_Type _config_type);
-		std::string create_gcc_build_pch_cmd(const std::filesystem::path& _pch_file, Config_Type _config_type);
-		std::string create_gcc_build_exec_cmd(const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type);
-		std::string create_gcc_build_static_lib_cmd(const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files);
+		std::string create_gcc_clang_base_cmd(Compiler_Type _compiler, Config_Type _config_type);
+		std::string create_gcc_clang_build_source_cmd(Compiler_Type _compiler, const std::filesystem::path& _source_file, Config_Type _config_type);
+		std::string create_gcc_clang_build_pch_cmd(Compiler_Type _compiler, const std::filesystem::path& _pch_file, Config_Type _config_type);
+		std::string create_gcc_clang_build_exec_cmd(Compiler_Type _compiler, const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type);
+		std::string create_gcc_clang_build_static_lib_cmd(Compiler_Type _compiler, const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files);
 
 		bool should_build();
 		bool build(const std::filesystem::path& _projects_path, bool _force_rebuild = false, Config_Type _config_type = Config_Type::Debug);
-		bool build_gcc(const std::filesystem::path& _projects_path, bool _force_rebuild = false, Config_Type _config_type = Config_Type::Debug);
+		bool build_gcc_clang(Compiler_Type _compiler, const std::filesystem::path& _projects_path, bool _force_rebuild = false, Config_Type _config_type = Config_Type::Debug);
 
 	};
 
