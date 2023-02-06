@@ -10,6 +10,8 @@ using namespace CBuild;
 
 int main(int argc, char** argv) {
 	
+	//@TODO: Check timestamp of build file?
+
 	Log::init();
 
 	//Read input file and flags.
@@ -18,6 +20,7 @@ int main(int argc, char** argv) {
 	std::string input_file = "";
 
 	bool flag_force_rebuild = false;
+	bool flag_print_cmds = false;
 	Config_Type config_type = Config_Type::Debug;
 
 	for (int i = 1; i < argc; ++i) {
@@ -36,6 +39,7 @@ int main(int argc, char** argv) {
 
 			flags.push_back(flag);
 			if (flag == "-force_rebuild" || flag == "-fr") flag_force_rebuild = true;
+			else if (flag == "-pcmds") flag_print_cmds = true;
 			else if (flag == "-release") config_type = Config_Type::Release;
 			else CBUILD_WARN("Unknown flag '{}' found.", flag);
 
@@ -115,7 +119,7 @@ int main(int argc, char** argv) {
 	}
 
 	//Build.
-	if (!parser.build(projects_path, flag_force_rebuild, config_type)) {
+	if (!parser.build(projects_path, flag_force_rebuild, flag_print_cmds, config_type)) {
 		return 1;
 	}
 

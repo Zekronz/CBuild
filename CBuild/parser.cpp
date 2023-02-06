@@ -24,6 +24,7 @@ namespace CBuild {
 		cmds["set_run_exec"]			= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
 		cmds["set_run_executable"]		= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
 		cmds["add_src_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_src_dirs) };
+		cmds["add_src_files"]			= { COMMAND_FUNC(Parser::parse_cmd_add_src_files) };
 		cmds["add_incl_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_incl_dirs) };
 		cmds["add_lib_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_lib_dirs) };
 		cmds["add_static_libs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_static_libs) };
@@ -355,6 +356,10 @@ namespace CBuild {
 		return parse_cmd_add_dirs(_index, _cur_token, _prev_token, src_dirs);
 	}
 
+	bool Parser::parse_cmd_add_src_files(u64& _index, Token& _cur_token, Token& _prev_token) {
+		return parse_cmd_add_files(_index, _cur_token, _prev_token, src_files);
+	}
+
 	bool Parser::parse_cmd_add_incl_dirs(u64& _index, Token& _cur_token, Token& _prev_token) {
 		return parse_cmd_add_dirs(_index, _cur_token, _prev_token, incl_dirs);
 	}
@@ -407,6 +412,66 @@ namespace CBuild {
 			}
 			else {
 				_dirs.push_back(dir_path);
+			}
+
+			get_next_token(_index, _cur_token, _prev_token);
+
+		}
+
+		get_prev_token(_index, _cur_token, _prev_token);
+
+		return parse_semicolon(_index, _cur_token, _prev_token);
+
+	}
+
+	bool Parser::parse_cmd_add_files(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _files) {
+
+		Token cmd_token = _cur_token;
+
+		get_next_token(_index, _cur_token, _prev_token);
+
+		if (_cur_token.type != Token_Type::String) {
+
+			std::string msg = "Expected at least 1 'file' argument in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		while (_cur_token.type == Token_Type::String) {
+
+			bool exists = false;
+
+			std::filesystem::path file_path = std::filesystem::u8path(_cur_token.value);
+			File::format_path(file_path);
+
+			if (!File::file_exists(file_path)) {
+
+				std::string msg = "File '" + _cur_token.value + "' does not exist, in command '" + cmd_token.value + "'";
+				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+				return false;
+
+			}
+
+			for (const std::filesystem::path& path : _files) {
+
+				if (File::compare(path, file_path)) {
+
+					exists = true;
+					break;
+
+				}
+
+			}
+
+			if (exists) {
+
+				std::string msg = "File '" + _cur_token.value + "' has already been added in command '" + cmd_token.value + "'";
+				error_handler.warn(msg, _cur_token.line_pos, _cur_token.char_pos);
+
+			}
+			else {
+				_files.push_back(file_path);
 			}
 
 			get_next_token(_index, _cur_token, _prev_token);
@@ -610,40 +675,41 @@ namespace CBuild {
 		return build_output / std::filesystem::u8path(config.config_type_to_string(_config_type));
 	}
 
-	std::string Parser::create_gcc_clang_base_cmd(Compiler_Type _compiler, Config_Type _config_type) {
+	std::string Parser::create_gcc_clang_base_args(Compiler_Type _compiler, Config_Type _config_type) {
 
-		std::string cmd = _compiler == Compiler_Type::GCC ? "gcc" : "clang";
-		cmd += " -Wall";
-
-		if (_config_type == Config_Type::Release) cmd += " -O3";
-		else cmd += " -g";
+		std::string args = "-Wall";
+		
+		if (_config_type == Config_Type::Release) args += " -O3";
+		else args += " -g";
 
 		for (const std::filesystem::path& incl_dir : incl_dirs) {
-			cmd += " -I " + incl_dir.string();
+			args += " -I " + incl_dir.string();
 		}
 
 		for (const std::filesystem::path& lib_dir : lib_dirs) {
-			cmd += " -L " + lib_dir.string();
+			args += " -L " + lib_dir.string();
 		}
 
 		if (static_libs.size() > 0) {
 
-			cmd += " -static";
+			args += " -static";
 
 			for (const std::string static_lib : static_libs) {
-				cmd += " -l " + static_lib;
+				args += " -l " + static_lib;
 			}
 
 		}
 
-		return cmd;
+		return args;
 
 	}
 
 	std::string Parser::create_gcc_clang_build_source_cmd(Compiler_Type _compiler, const std::filesystem::path& _source_file, Config_Type _config_type) {
 
-		std::string cmd = create_gcc_clang_base_cmd(_compiler, _config_type);
+		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
 		cmd += " " + _source_file.string();
+
+		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
 
 		std::filesystem::path obj_path = get_obj_output_path(_config_type) / _source_file.filename().replace_extension(".o");
 		File::format_path(obj_path);
@@ -656,7 +722,8 @@ namespace CBuild {
 
 	std::string Parser::create_gcc_clang_build_pch_cmd(Compiler_Type _compiler, const std::filesystem::path& _pch_file, Config_Type _config_type) {
 
-		std::string cmd = create_gcc_clang_base_cmd(_compiler, _config_type);
+		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
+		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
 
 		std::filesystem::path gch_path = _pch_file;
 		gch_path.replace_extension(".gch");
@@ -669,7 +736,7 @@ namespace CBuild {
 
 	std::string Parser::create_gcc_clang_build_exec_cmd(Compiler_Type _compiler, const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type) {
 
-		std::string cmd = create_gcc_clang_base_cmd(_compiler, _config_type);
+		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
 
 		for (const std::filesystem::path& file : _obj_files) {
 
@@ -679,6 +746,7 @@ namespace CBuild {
 
 		}
 
+		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
 		cmd += " -o " + _exec_file.string();
 
 		return cmd;
@@ -703,20 +771,20 @@ namespace CBuild {
 	}
 
 	bool Parser::should_build() {
-		return (src_dirs.size() > 0);
+		return (src_dirs.size() > 0 || src_files.size() > 0);
 	}
 
-	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild, Config_Type _config_type) {
+	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
 
 		if (compiler_type == Compiler_Type::GCC || compiler_type == Compiler_Type::Clang) {
-			return build_gcc_clang(compiler_type, _projects_path, _force_rebuild, _config_type);
+			return build_gcc_clang(compiler_type, _projects_path, _force_rebuild, _print_cmds, _config_type);
 		}
 
 		return true;
 
 	}
 
-	bool Parser::build_gcc_clang(Compiler_Type _compiler, const std::filesystem::path& _projects_path, bool _force_rebuild, Config_Type _config_type) {
+	bool Parser::build_gcc_clang(Compiler_Type _compiler, const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
 
 		//@TODO: Display what compiler is used and time measurment.
 		//@TODO: Reset to white.
@@ -809,6 +877,8 @@ namespace CBuild {
 					cmd = create_gcc_clang_build_pch_cmd(_compiler, precompiled_header, _config_type);
 
 					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
+
+					if (_print_cmds) CBUILD_TRACE(cmd);
 					if (system(cmd.c_str()) != 0) {
 
 						CBUILD_ERROR("An error occurred while compiling precompiled header.");
@@ -825,7 +895,7 @@ namespace CBuild {
 		config.last_used_type = _config_type;
 		
 		//Compile source files.
-		std::vector<std::filesystem::path> src_files;
+		std::vector<std::filesystem::path> src_dir_files;
 		std::vector<std::filesystem::path> obj_files;
 
 		for (const std::filesystem::path& src_path : src_dirs) {
@@ -837,9 +907,9 @@ namespace CBuild {
 
 			}
 			
-			if (!File::find_files(src_path, ".c", src_files)) continue;
+			if (!File::find_files(src_path, ".c", src_dir_files)) continue;
 			
-			for (const std::filesystem::path& file : src_files) {
+			for (const std::filesystem::path& file : src_dir_files) {
 
 				std::filesystem::path obj_path = obj_output_path / file.filename().replace_extension(".o");
 				obj_files.push_back(obj_path);
@@ -851,6 +921,7 @@ namespace CBuild {
 
 				CBUILD_TRACE("Compiling '{}'", file.string());
 
+				if (_print_cmds) CBUILD_TRACE(cmd);
 				if (system(cmd.c_str()) != 0) {
 
 					CBUILD_ERROR("An error occurred.");
@@ -863,6 +934,32 @@ namespace CBuild {
 				built_something = true;
 
 			}
+
+		}
+
+		for (const std::filesystem::path& src_file : src_files) {
+
+			std::filesystem::path obj_path = obj_output_path / src_file.filename().replace_extension(".o");
+			obj_files.push_back(obj_path);
+
+			bool built = parse_source_and_header_files(src_file, _config_type);
+			if (!built && !_force_rebuild) continue;
+
+			cmd = create_gcc_clang_build_source_cmd(_compiler, src_file, _config_type);
+
+			CBUILD_TRACE("Compiling '{}'", src_file.string());
+
+			if (_print_cmds) CBUILD_TRACE(cmd);
+			if (system(cmd.c_str()) != 0) {
+
+				CBUILD_ERROR("An error occurred.");
+				config.save_config(config_path);
+
+				return false;
+
+			}
+
+			built_something = true;
 
 		}
 
@@ -892,6 +989,7 @@ namespace CBuild {
 
 			cmd = create_gcc_clang_build_static_lib_cmd(_compiler, lib_path, obj_files);
 
+			if (_print_cmds) CBUILD_TRACE(cmd);
 			if (system(cmd.c_str()) != 0) {
 
 				CBUILD_ERROR("Error occurred while linking static library.");
@@ -910,6 +1008,7 @@ namespace CBuild {
 
 			cmd = create_gcc_clang_build_exec_cmd(_compiler, exec_path, obj_files, _config_type);
 
+			if (_print_cmds) CBUILD_TRACE(cmd);
 			if (system(cmd.c_str()) != 0) {
 
 				CBUILD_ERROR("Error occurred while linking executable.");
@@ -922,6 +1021,8 @@ namespace CBuild {
 			if (run_exec) {
 
 				cmd = "cd " + build_output_path.string() + " && \"" + build_name + "\"";
+
+				if (_print_cmds) CBUILD_TRACE(cmd);
 				system(cmd.c_str());
 
 			}
