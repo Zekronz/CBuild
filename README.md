@@ -15,7 +15,7 @@ set_obj_output obj;         //Specifies the output of directory the compiled obj
 set_build_output bin;       //Specifies the directory of the final executable/library.
 set_build_name tutorial;    //Specifies the name of the final executable/library.
 ```
-Refer to the [Command List](https://github.com/Zekronz/CBuild/blob/master/README.md#command-list) for a list of all commands.  
+Refer to the [Command List](https://github.com/Zekronz/CBuild#command-list) for a list of all commands.  
 In order to build your project, open a command prompt in the same directory as your `.cbuild` file and run `cbuild 'name_of_build_file'`.
 
 ## Command List
