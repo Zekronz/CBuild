@@ -18,6 +18,13 @@ set_build_name tutorial;    //Specifies the name of the final executable/library
 Refer to the [Command List](https://github.com/Zekronz/CBuild#command-list) for a list of all commands.  
 In order to build your project, open a command prompt in the same directory as your `.cbuild` file and run `cbuild 'name_of_build_file'`.
 
+## Build Flags
+```
+-fr/force_rebuild   - Forces CBuild to rebuild every source file.
+-release            - Compile in release mode (defaults to debug mode).
+-pcmds              - Prints out the compiler's build commands.
+```
+
 ## Command List
 ```
 set_compiler 'name'                           - C compiler (default: gcc, supports: gcc)  
@@ -37,3 +44,6 @@ add_static_libs 'lib1' 'lib2' ...             - Add one or more static libraries
 ## Work in Progress
 - Support for more compilers (clang is currently in the works).
 - Support for dynamic libraries.
+
+## Credits
+CBuild uses [spdlog](https://github.com/gabime/spdlog) for logging.

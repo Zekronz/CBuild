@@ -830,19 +830,26 @@ namespace CBuild {
 
 			bool found = false;
 
-			for (const std::filesystem::path& src_path : src_dirs) {
+			if (File::file_exists(precompiled_header)) {
+				found = true;
+			}
+			else {
 
-				std::filesystem::path pch_path = src_path / precompiled_header;
-				File::format_path(pch_path);
+				for (const std::filesystem::path& src_path : src_dirs) {
 
-				if (File::file_exists(pch_path)) {
+					std::filesystem::path pch_path = src_path / precompiled_header;
+					File::format_path(pch_path);
 
-					precompiled_header = pch_path;
-					found = true;
-					break;
+					if (File::file_exists(pch_path)) {
+
+						precompiled_header = pch_path;
+						found = true;
+						break;
+
+					}
 
 				}
-
+				
 			}
 
 			if (!found) {
@@ -879,7 +886,7 @@ namespace CBuild {
 					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
 
 					if (_print_cmds) CBUILD_TRACE(cmd);
-					if (system(cmd.c_str()) != 0) {
+					if (system(cmd.c_str()) != 0) { //@TODO: Check if returned with warning?
 
 						CBUILD_ERROR("An error occurred while compiling precompiled header.");
 						return 0;
@@ -922,7 +929,7 @@ namespace CBuild {
 				CBUILD_TRACE("Compiling '{}'", file.string());
 
 				if (_print_cmds) CBUILD_TRACE(cmd);
-				if (system(cmd.c_str()) != 0) {
+				if (system(cmd.c_str()) != 0) { //@TODO: Check if returned with warning?
 
 					CBUILD_ERROR("An error occurred.");
 					config.save_config(config_path);
