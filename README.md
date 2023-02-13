@@ -21,7 +21,7 @@ In order to build your project, open a command prompt in the same directory as y
 ## Build Flags
 ```
 -fr/force_rebuild   - Forces CBuild to rebuild every source file.
--release            - Compile in release mode (defaults to debug mode).
+-release            - Compiles in release mode (defaults to debug mode).
 -pcmds              - Prints out the compiler's build commands.
 ```
 
