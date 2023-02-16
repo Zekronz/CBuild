@@ -14,6 +14,8 @@ namespace CBuild {
 
 		None,
 		String,
+		Command,
+		Bool,
 		Semicolon,
 		End_Of_File,
 
@@ -35,6 +37,7 @@ namespace CBuild {
 		Single_Line_Comment,
 		Multi_Line_Comment,
 		String,
+		Command,
 
 	};
 
@@ -44,9 +47,10 @@ namespace CBuild {
 		Error_Handler error_handler;
 
 		bool is_valid_path_char(s8 _char);
+		bool is_valid_path_string(const std::string& _path);
 		bool is_digit(s8 _char);
 		bool is_letter(s8 _char);
-		bool is_string_char(s8 _char);
+		bool is_cmd_char(s8 _char);
 		s8 char_at(const std::string& _source, size_t _index);
 		bool parse_source(const std::string& _source);
 		void print_tokens();

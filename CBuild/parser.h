@@ -96,7 +96,7 @@ namespace CBuild {
 
 		bool parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _dirs);
 		bool parse_cmd_add_files(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _files);
-		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings);
+		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings, bool _validate_strings = false);
 
 		bool parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type);
 

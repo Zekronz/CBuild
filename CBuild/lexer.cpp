@@ -13,6 +13,16 @@ namespace CBuild {
 
 	}
 
+	bool Lexer::is_valid_path_string(const std::string& _path) {
+
+		for (const s8& c : _path) {
+			if (!is_valid_path_char(c)) return false;
+		}
+
+		return true;
+
+	}
+
 	bool Lexer::is_digit(s8 _char) {
 		return (_char >= '0' && _char <= '9');
 	}
@@ -21,16 +31,8 @@ namespace CBuild {
 		return (_char >= 'A' && _char <= 'Z') || (_char >= 'a' && _char <= 'z');
 	}
 
-	bool Lexer::is_string_char(s8 _char) {
-
-		if (/*_char == '/' || _char == '\\' || */_char == '?' || _char == '%' || _char == '*' || _char == ':' || _char == '|' || _char == '"' || _char == '<' || _char == '>' || _char == ',' || _char == ';' || _char == '=' || _char == ' ' || _char == '\t' || _char == '\n' || _char == '\r') {
-			return false;
-		}
-
-		return true;
-
-		//return (_char == '_') || is_digit(_char) || is_letter(_char);
-
+	bool Lexer::is_cmd_char(s8 _char) {
+		return (is_letter(_char) || _char == '_');
 	}
 
 	s8 Lexer::char_at(const std::string& _source, size_t _index) {
@@ -101,23 +103,31 @@ namespace CBuild {
 
 					}
 
-					//String.
+					//Invalid.
 					else {
 
-						state = Lexer_State::String;
-						token_name = cur;
-
-						token_line_pos = line_pos;
-						token_char_pos = char_pos;
+						error_handler.set_error(Error_Type::Syntax_Error, "Unexpected symbol found: '/'", line_pos, char_pos);
+						return false;
 
 					}
 
 				}
 
 				//String.
-				else if (is_string_char(cur)) {
+				else if (cur == '"') {
 
 					state = Lexer_State::String;
+					token_name = "";
+
+					token_line_pos = line_pos;
+					token_char_pos = char_pos;
+
+				}
+
+				//Command.
+				else if (is_cmd_char(cur)) {
+
+					state = Lexer_State::Command;
 					token_name = cur;
 
 					token_line_pos = line_pos;
@@ -147,7 +157,22 @@ namespace CBuild {
 			//String state.
 			else if (state == Lexer_State::String) {
 
-				if (!is_string_char(cur)) {
+				if (cur == '"') {
+
+					state = Lexer_State::Normal;
+					tokens.push_back({ Token_Type::String, token_name, token_line_pos, token_char_pos});
+
+				}
+				else {
+					token_name += cur;
+				}
+
+			}
+
+			//Command state.
+			else if (state == Lexer_State::Command) {
+
+				if (!is_cmd_char(cur)) {
 
 					state = Lexer_State::Normal;
 
@@ -164,7 +189,7 @@ namespace CBuild {
 						--char_pos;
 					}
 
-					tokens.push_back({ Token_Type::String, token_name, token_line_pos, token_char_pos});
+					tokens.push_back({ (token_name == "true" || token_name == "false") ? Token_Type::Bool : Token_Type::Command, token_name, token_line_pos, token_char_pos});
 
 				}
 				else {
@@ -226,6 +251,13 @@ namespace CBuild {
 
 			new_line = false;
 			increment_char_pos= true;
+
+		}
+
+		if (state == Lexer_State::String) {
+
+			error_handler.set_error(Error_Type::Syntax_Error, "End of string expected.", line_pos, char_pos);
+			return false;
 
 		}
 

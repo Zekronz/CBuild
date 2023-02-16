@@ -102,7 +102,7 @@ namespace CBuild {
 			}
 
 			//Command.
-			else if (token.type == Token_Type::String) {
+			else if (token.type == Token_Type::Command) {
 				if (!parse_cmd(i, token, prev_token)) return false;
 			}
 
@@ -222,20 +222,15 @@ namespace CBuild {
 
 		}
 
-		project_name = _cur_token.value;
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
 
-		for (const char& c : project_name) {
-			if (!lexer->is_valid_path_char(c)) {
+			std::string msg = "Invalid project name '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
 
-				project_name = "";
-
-				std::string msg = "Invalid project_name '" + _cur_token.value + "' specified in command '" + _prev_token.value + "'";
-				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
-
-				return false;
-
-			}
 		}
+
+		project_name = _cur_token.value;
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
 
@@ -248,6 +243,14 @@ namespace CBuild {
 		if (_cur_token.type != Token_Type::String) {
 
 			std::string msg = "Expected argument 'obj_output_dir' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid directory '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
 			return false;
 
@@ -272,6 +275,14 @@ namespace CBuild {
 
 		}
 
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid directory '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
 		build_output = std::filesystem::u8path(_cur_token.value);
 		File::format_path(build_output);
 
@@ -290,22 +301,16 @@ namespace CBuild {
 			return false;
 
 		}
+		
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid build name '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
 
 		build_name = _cur_token.value;
-
-		for (const char& c : build_name) {
-			if (!lexer->is_valid_path_char(c)) {
-
-				build_name = "";
-
-				std::string msg = "Invalid build_name '" + _cur_token.value + "' specified in command '" + _prev_token.value + "'";
-				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
-				
-
-				return false;
-
-			}
-		}
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
 
@@ -323,6 +328,14 @@ namespace CBuild {
 
 		}
 
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid file path '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
 		precompiled_header = std::filesystem::u8path(_cur_token.value);
 		File::format_path(precompiled_header);
 
@@ -334,16 +347,15 @@ namespace CBuild {
 
 		get_next_token(_index, _cur_token, _prev_token);
 
-		if (_cur_token.type != Token_Type::String) {
+		if (_cur_token.type != Token_Type::Bool) {
 
-			std::string msg = "Expected argument 'run_exec' in command '" + _prev_token.value + "'";
+			std::string msg = "Expected boolean argument 'run_exec' in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
 			return false;
 
 		}
 
 		std::string run = _cur_token.value;
-		String_Helper::lower(run);
 
 		if (run == "true") run_exec = true;
 		else run_exec = false;
@@ -369,7 +381,7 @@ namespace CBuild {
 	}
 
 	bool Parser::parse_cmd_add_static_libs(u64& _index, Token& _cur_token, Token& _prev_token) {
-		return parse_cmd_add_strings(_index, _cur_token, _prev_token, static_libs);
+		return parse_cmd_add_strings(_index, _cur_token, _prev_token, static_libs, true);
 	}
 
 	bool Parser::parse_cmd_add_dirs(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _dirs) {
@@ -387,6 +399,14 @@ namespace CBuild {
 		}
 
 		while (_cur_token.type == Token_Type::String) {
+
+			if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+				std::string msg = "Invalid directory '" + _cur_token.value + "' in command '" + cmd_token.value + "'";
+				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+				return false;
+
+			}
 
 			bool exists = false;
 
@@ -440,6 +460,14 @@ namespace CBuild {
 
 		while (_cur_token.type == Token_Type::String) {
 
+			if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+				std::string msg = "Invalid file path '" + _cur_token.value + "' in command '" + cmd_token.value + "'";
+				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+				return false;
+
+			}
+
 			bool exists = false;
 
 			std::filesystem::path file_path = std::filesystem::u8path(_cur_token.value);
@@ -484,7 +512,7 @@ namespace CBuild {
 
 	}
 
-	bool Parser::parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings) {
+	bool Parser::parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings, bool _validate_strings) {
 
 		Token cmd_token = _cur_token;
 
@@ -499,6 +527,14 @@ namespace CBuild {
 		}
 
 		while (_cur_token.type == Token_Type::String) {
+
+			if (_validate_strings && !lexer->is_valid_path_string(_cur_token.value)) {
+
+				std::string msg = "Invalid string '" + _cur_token.value + "' in command '" + cmd_token.value + "'";
+				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+				return false;
+
+			}
 
 			bool exists = false;
 

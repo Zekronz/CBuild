@@ -42,6 +42,7 @@ add_static_libs 'lib1' 'lib2' ...             - Add one or more static libraries
 ```
 
 ## Work in Progress
+- GCC AVR.
 - Support for more compilers (clang is currently in the works).
 - Support for dynamic libraries.
 
