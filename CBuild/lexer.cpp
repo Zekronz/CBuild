@@ -5,7 +5,7 @@ namespace CBuild {
 
 	bool Lexer::is_valid_path_char(s8 _char) {
 
-		if (_char == '/' || _char == '\\' || _char == '?' || _char == '%' || _char == '*' || _char == ':' || _char == '|' || _char == '"' || _char == '<' || _char == '>' || _char == ',' || _char == ';' || _char == '=' || _char == ' ' || _char == '\t' || _char == '\n' || _char == '\r') {
+		if (_char == '?' || _char == '%' || _char == '*' || _char == '|' || _char == '"' || _char == '<' || _char == '>' || _char == ',' || _char == ';' || _char == '=' || _char == '\t' || _char == '\n' || _char == '\r') {
 			return false;
 		}
 
@@ -17,6 +17,23 @@ namespace CBuild {
 
 		for (const s8& c : _path) {
 			if (!is_valid_path_char(c)) return false;
+		}
+
+		return true;
+
+	}
+
+	bool Lexer::is_valid_file_name_char(s8 _char) {
+
+		if (_char == '/' || _char == '\\' || _char == ':' || _char == ' ' || !is_valid_path_char(_char)) return false;
+		return true;
+
+	}
+
+	bool Lexer::is_valid_file_name_string(const std::string& _path) {
+
+		for (const s8& c : _path) {
+			if (!is_valid_file_name_char(c)) return false;
 		}
 
 		return true;

@@ -48,6 +48,8 @@ namespace CBuild {
 
 		bool is_valid_path_char(s8 _char);
 		bool is_valid_path_string(const std::string& _path);
+		bool is_valid_file_name_char(s8 _char);
+		bool is_valid_file_name_string(const std::string& _path);
 		bool is_digit(s8 _char);
 		bool is_letter(s8 _char);
 		bool is_cmd_char(s8 _char);

@@ -14,20 +14,35 @@ namespace CBuild {
 
 		//Commands.
 		cmds["set_compiler"]			= { COMMAND_FUNC(Parser::parse_cmd_set_compiler) };
+		cmds["set_compiler_dir"]		= { COMMAND_FUNC(Parser::parse_cmd_set_compiler_dir) };
 		cmds["set_project_name"]		= { COMMAND_FUNC(Parser::parse_cmd_set_project_name) };
+		cmds["set_avr_mcu"]				= { COMMAND_FUNC(Parser::parse_cmd_set_avr_mcu) };
+		cmds["set_atmel_studio_dir"]	= { COMMAND_FUNC(Parser::parse_cmd_set_atmel_studio_dir) };
 		cmds["set_build_type"]			= { COMMAND_FUNC(Parser::parse_cmd_set_build_type) };
 		cmds["set_build_output"]		= { COMMAND_FUNC(Parser::parse_cmd_set_build_output) };
 		cmds["set_build_name"]			= { COMMAND_FUNC(Parser::parse_cmd_set_build_name) };
 		cmds["set_obj_output"]			= { COMMAND_FUNC(Parser::parse_cmd_set_obj_output) };
 		cmds["set_precompiled_header"]	= { COMMAND_FUNC(Parser::parse_cmd_set_precompiled_header) };
 		cmds["set_pch"]					= { COMMAND_FUNC(Parser::parse_cmd_set_precompiled_header) };
-		cmds["set_run_exec"]			= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
-		cmds["set_run_executable"]		= { COMMAND_FUNC(Parser::parse_cmd_set_run_exec) };
+		cmds["set_run_binary"]			= { COMMAND_FUNC(Parser::parse_cmd_set_run_binary) };
 		cmds["add_src_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_src_dirs) };
 		cmds["add_src_files"]			= { COMMAND_FUNC(Parser::parse_cmd_add_src_files) };
 		cmds["add_incl_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_incl_dirs) };
 		cmds["add_lib_dirs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_lib_dirs) };
 		cmds["add_static_libs"]			= { COMMAND_FUNC(Parser::parse_cmd_add_static_libs) };
+
+		//Compiler specs.
+		compiler_specs["gcc"] = new Compiler_Spec_GCC();
+		compiler_specs["avr-gcc"] = new Compiler_Spec_AVR_GCC();
+		compiler_specs["clang"] = new Compiler_Spec_Clang();
+
+	}
+
+	Parser::~Parser() {
+
+		for (const auto& it : compiler_specs) {
+			delete it.second;
+		}
 
 	}
 
@@ -163,10 +178,12 @@ namespace CBuild {
 
 		}
 		
-		std::string compiler_name = _cur_token.value;
-		String_Helper::lower(compiler_name);
+		compiler = _cur_token.value;
+		String_Helper::lower(compiler);
 
-		if (compiler_name != "gcc" && compiler_name != "clang") {
+		const auto& spec_it = compiler_specs.find(compiler);
+
+		if (spec_it == compiler_specs.end()) {
 
 			std::string msg = "Invalid compiler '" + _cur_token.value + "' specified in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -174,7 +191,94 @@ namespace CBuild {
 
 		}
 
-		compiler_type = compiler_name == "gcc" ? Compiler_Type::GCC : Compiler_Type::Clang;
+		return parse_semicolon(_index, _cur_token, _prev_token);
+
+	}
+
+	bool Parser::parse_cmd_set_compiler_dir(u64& _index, Token& _cur_token, Token& _prev_token) {
+
+		get_next_token(_index, _cur_token, _prev_token);
+
+		if (_cur_token.type != Token_Type::String) {
+
+			std::string msg = "Expected argument 'compiler_dir' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid directory '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		compiler_dir = std::filesystem::u8path(_cur_token.value);
+		File::format_path(compiler_dir);
+		
+		if (!File::directory_exists(compiler_dir)) {
+
+			std::string msg = "Compiler directory does not exist: '" + _cur_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		return parse_semicolon(_index, _cur_token, _prev_token);
+
+	}
+
+	bool Parser::parse_cmd_set_avr_mcu(u64& _index, Token& _cur_token, Token& _prev_token) {
+
+		get_next_token(_index, _cur_token, _prev_token);
+
+		if (_cur_token.type != Token_Type::String) {
+
+			std::string msg = "Expected argument 'mcu' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		avr_mcu = _cur_token.value;
+		String_Helper::lower(avr_mcu);
+
+		return parse_semicolon(_index, _cur_token, _prev_token);
+
+	}
+
+	bool Parser::parse_cmd_set_atmel_studio_dir(u64& _index, Token& _cur_token, Token& _prev_token) {
+
+		get_next_token(_index, _cur_token, _prev_token);
+
+		if (_cur_token.type != Token_Type::String) {
+
+			std::string msg = "Expected argument 'ateml_studio_dir' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		if (!lexer->is_valid_path_string(_cur_token.value)) {
+
+			std::string msg = "Invalid directory '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
+
+		atmel_studio_dir = std::filesystem::u8path(_cur_token.value);
+		File::format_path(atmel_studio_dir);
+
+		if (!File::directory_exists(atmel_studio_dir)) {
+
+			std::string msg = "Directory does not exist: '" + _cur_token.value + "'";
+			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
+			return false;
+
+		}
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
 
@@ -195,7 +299,7 @@ namespace CBuild {
 		std::string build_type_name = _cur_token.value;
 		String_Helper::lower(build_type_name);
 
-		if (build_type_name != "executable" && build_type_name != "exec" && build_type_name != "static_lib") {
+		if (build_type_name != "binary" && build_type_name != "static_lib") {
 
 			std::string msg = "Invalid build_type '" + _cur_token.value + "' specified in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -203,7 +307,7 @@ namespace CBuild {
 
 		}
 
-		if (build_type_name == "executable" || build_type_name == "exec") build_type = Build_Type::Executable;
+		if (build_type_name == "binary") build_type = Build_Type::Binary;
 		else build_type = Build_Type::Static_Lib;
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
@@ -222,7 +326,7 @@ namespace CBuild {
 
 		}
 
-		if (!lexer->is_valid_path_string(_cur_token.value)) {
+		if (!lexer->is_valid_file_name_string(_cur_token.value)) {
 
 			std::string msg = "Invalid project name '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -302,7 +406,7 @@ namespace CBuild {
 
 		}
 		
-		if (!lexer->is_valid_path_string(_cur_token.value)) {
+		if (!lexer->is_valid_file_name_string(_cur_token.value)) {
 
 			std::string msg = "Invalid build name '" + _cur_token.value + "' in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -343,13 +447,13 @@ namespace CBuild {
 
 	}
 
-	bool Parser::parse_cmd_set_run_exec(u64& _index, Token& _cur_token, Token& _prev_token) {
+	bool Parser::parse_cmd_set_run_binary(u64& _index, Token& _cur_token, Token& _prev_token) {
 
 		get_next_token(_index, _cur_token, _prev_token);
 
 		if (_cur_token.type != Token_Type::Bool) {
 
-			std::string msg = "Expected boolean argument 'run_exec' in command '" + _prev_token.value + "'";
+			std::string msg = "Expected boolean argument 'run_binary' in command '" + _prev_token.value + "'";
 			error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
 			return false;
 
@@ -357,8 +461,7 @@ namespace CBuild {
 
 		std::string run = _cur_token.value;
 
-		if (run == "true") run_exec = true;
-		else run_exec = false;
+		run_binary = (run == "true") ? true : false;
 
 		return parse_semicolon(_index, _cur_token, _prev_token);
 
@@ -528,7 +631,7 @@ namespace CBuild {
 
 		while (_cur_token.type == Token_Type::String) {
 
-			if (_validate_strings && !lexer->is_valid_path_string(_cur_token.value)) {
+			if (_validate_strings && !lexer->is_valid_file_name_string(_cur_token.value)) {
 
 				std::string msg = "Invalid string '" + _cur_token.value + "' in command '" + cmd_token.value + "'";
 				error_handler.set_error(Error_Type::Error, msg, _cur_token.line_pos, _cur_token.char_pos);
@@ -703,6 +806,24 @@ namespace CBuild {
 
 	}
 
+	std::filesystem::path Parser::get_atmel_studio_include_path() {
+
+		std::filesystem::path path = atmel_studio_dir / std::filesystem::u8path("Packs\\atmel\\ATmega_DFP\\1.6.364\\include");
+		File::format_path(path);
+
+		return path;
+
+	}
+
+	std::filesystem::path Parser::get_atmel_studio_mcu_path() {
+
+		std::filesystem::path path = atmel_studio_dir / std::filesystem::u8path("Packs\\atmel\\ATmega_DFP\\1.6.364\\gcc\\dev\\" + avr_mcu);
+		File::format_path(path);
+
+		return path;
+
+	}
+
 	std::filesystem::path Parser::get_obj_output_path(Config_Type _config_type) {
 		return obj_output / std::filesystem::u8path(config.config_type_to_string(_config_type));
 	}
@@ -711,98 +832,13 @@ namespace CBuild {
 		return build_output / std::filesystem::u8path(config.config_type_to_string(_config_type));
 	}
 
-	std::string Parser::create_gcc_clang_base_args(Compiler_Type _compiler, Config_Type _config_type) {
+	std::filesystem::path Parser::get_compiler_path(const std::string _name) {
 
-		std::string args = "-Wall";
-		
-		if (_config_type == Config_Type::Release) args += " -O3";
-		else args += " -g";
+		std::filesystem::path path = compiler_dir;
+		path /= std::filesystem::u8path(_name);
+		File::format_path(path);
 
-		for (const std::filesystem::path& incl_dir : incl_dirs) {
-			args += " -I " + incl_dir.string();
-		}
-
-		for (const std::filesystem::path& lib_dir : lib_dirs) {
-			args += " -L " + lib_dir.string();
-		}
-
-		if (static_libs.size() > 0) {
-
-			args += " -static";
-
-			for (const std::string static_lib : static_libs) {
-				args += " -l " + static_lib;
-			}
-
-		}
-
-		return args;
-
-	}
-
-	std::string Parser::create_gcc_clang_build_source_cmd(Compiler_Type _compiler, const std::filesystem::path& _source_file, Config_Type _config_type) {
-
-		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
-		cmd += " " + _source_file.string();
-
-		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
-
-		std::filesystem::path obj_path = get_obj_output_path(_config_type) / _source_file.filename().replace_extension(".o");
-		File::format_path(obj_path);
-
-		cmd += " -c -o " + obj_path.string();
-
-		return cmd;
-
-	}
-
-	std::string Parser::create_gcc_clang_build_pch_cmd(Compiler_Type _compiler, const std::filesystem::path& _pch_file, Config_Type _config_type) {
-
-		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
-		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
-
-		std::filesystem::path gch_path = _pch_file;
-		gch_path.replace_extension(".gch");
-
-		cmd += " -c " + _pch_file.string() + " -o " + gch_path.string();
-
-		return cmd;
-
-	}
-
-	std::string Parser::create_gcc_clang_build_exec_cmd(Compiler_Type _compiler, const std::filesystem::path& _exec_file, std::vector<std::filesystem::path>& _obj_files, Config_Type _config_type) {
-
-		std::string cmd = (_compiler == Compiler_Type::GCC ? "gcc" : "clang");
-
-		for (const std::filesystem::path& file : _obj_files) {
-
-			if (File::file_exists(file)) {
-				cmd += " " + file.string();
-			}
-
-		}
-
-		cmd += " " + create_gcc_clang_base_args(_compiler, _config_type);
-		cmd += " -o " + _exec_file.string();
-
-		return cmd;
-
-	}
-
-	std::string Parser::create_gcc_clang_build_static_lib_cmd(Compiler_Type _compiler, const std::filesystem::path& _lib_file, std::vector<std::filesystem::path>& _obj_files) {
-
-		std::string cmd = _compiler == Compiler_Type::GCC ? "ar" : "llvm-ar";
-		cmd += " rcs " + _lib_file.string();
-
-		for (const std::filesystem::path& file : _obj_files) {
-
-			if (File::file_exists(file)) {
-				cmd += " " + file.string();
-			}
-
-		}
-
-		return cmd;
+		return path;
 
 	}
 
@@ -812,39 +848,86 @@ namespace CBuild {
 
 	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
 
-		if (compiler_type == Compiler_Type::GCC || compiler_type == Compiler_Type::Clang) {
-			return build_gcc_clang(compiler_type, _projects_path, _force_rebuild, _print_cmds, _config_type);
+		if (compiler == "gcc" || compiler == "avr-gcc" || compiler == "clang") {
+			return build_gcc_clang(compiler, _projects_path, _force_rebuild, _print_cmds, _config_type);
 		}
 
 		return true;
 
 	}
 
-	bool Parser::build_gcc_clang(Compiler_Type _compiler, const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
+	bool Parser::build_gcc_clang(const std::string& _compiler, const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
 
 		//@TODO: Display what compiler is used and time measurment.
 		//@TODO: Reset to white.
 		//@TODO: Rebuild everything if compiler changed.
-
+		//@TODO: Check if library updated.
+		
 		std::string cmd;
 
+		const auto& spec_it = compiler_specs.find(_compiler);
+		if (spec_it == compiler_specs.end()) {
+
+			CBUILD_ERROR("Invalid compiler: {}", _compiler);
+			return false;
+
+		}
+
+		Compiler_Spec* compiler = spec_it->second;
+
+		//Check AVR-GCC directories.
+		if (compiler->type == Compiler_Type::AVR_GCC) {
+
+			std::filesystem::path atmel_studio_include_dir = get_atmel_studio_include_path();
+			std::filesystem::path atmel_studio_mcu_dir = get_atmel_studio_mcu_path();
+
+			if (atmel_studio_dir.empty()) {
+
+				CBUILD_ERROR("No Atmel Studio directory specified.");
+				return false;
+
+			}
+
+			if (!File::directory_exists(atmel_studio_dir)) {
+
+				CBUILD_ERROR("Atmel Studio directory does not exist: {}", atmel_studio_dir.string());
+				return false;
+
+			}
+
+			if (!File::directory_exists(atmel_studio_include_dir)) {
+
+				CBUILD_ERROR("Atmel Studio include directory does not exist: {}", atmel_studio_include_dir.string());
+				return false;
+
+			}
+
+			if (!File::directory_exists(atmel_studio_mcu_dir)) {
+
+				CBUILD_ERROR("Atmel Studio '{}' directory does not exist: {}", avr_mcu, atmel_studio_mcu_dir.string());
+				return false;
+
+			}
+
+		}
+
+		//Create obj and build directories.
 		std::filesystem::path obj_output_path = get_obj_output_path(_config_type);
 		std::filesystem::path build_output_path = get_build_output_path(_config_type);
 
-		//Create obj and build directories.
-		if (!std::filesystem::is_directory(obj_output)) {
+		if (!File::directory_exists(obj_output)) {
 			std::filesystem::create_directory(obj_output);
 		}
 
-		if (!std::filesystem::is_directory(obj_output_path)) {
+		if (!File::directory_exists(obj_output_path)) {
 			std::filesystem::create_directory(obj_output_path);
 		}
 
-		if (!std::filesystem::is_directory(build_output)) {
+		if (!File::directory_exists(build_output)) {
 			std::filesystem::create_directory(build_output);
 		}
 
-		if (!std::filesystem::is_directory(build_output_path)) {
+		if (!File::directory_exists(build_output_path)) {
 			std::filesystem::create_directory(build_output_path);
 		}
 
@@ -917,15 +1000,16 @@ namespace CBuild {
 
 				if (built_pch) {
 					
-					cmd = create_gcc_clang_build_pch_cmd(_compiler, precompiled_header, _config_type);
+					cmd = compiler->build_pch_cmd(precompiled_header, _config_type, *this);
 
 					CBUILD_TRACE("Compiling PCH '{}'", precompiled_header.string());
 
 					if (_print_cmds) CBUILD_TRACE(cmd);
+					
 					if (system(cmd.c_str()) != 0) { //@TODO: Check if returned with warning?
 
 						CBUILD_ERROR("An error occurred while compiling precompiled header.");
-						return 0;
+						return false;
 
 					}
 
@@ -960,7 +1044,7 @@ namespace CBuild {
 				bool built = parse_source_and_header_files(file, _config_type);
 				if (!built && !_force_rebuild) continue;
 
-				cmd = create_gcc_clang_build_source_cmd(_compiler, file, _config_type);
+				cmd = compiler->build_source_cmd(file, _config_type, *this);
 
 				CBUILD_TRACE("Compiling '{}'", file.string());
 
@@ -988,7 +1072,7 @@ namespace CBuild {
 			bool built = parse_source_and_header_files(src_file, _config_type);
 			if (!built && !_force_rebuild) continue;
 
-			cmd = create_gcc_clang_build_source_cmd(_compiler, src_file, _config_type);
+			cmd = compiler->build_source_cmd(src_file, _config_type, *this);
 
 			CBUILD_TRACE("Compiling '{}'", src_file.string());
 
@@ -1030,7 +1114,7 @@ namespace CBuild {
 			std::string lib_name = "lib" + build_name + ".a";
 			std::filesystem::path lib_path = build_output_path / std::filesystem::u8path(lib_name);
 
-			cmd = create_gcc_clang_build_static_lib_cmd(_compiler, lib_path, obj_files);
+			cmd = compiler->build_static_lib_cmd(lib_path, obj_files, _config_type, *this);
 
 			if (_print_cmds) CBUILD_TRACE(cmd);
 			if (system(cmd.c_str()) != 0) {
@@ -1044,24 +1128,24 @@ namespace CBuild {
 
 		}
 
-		//Generate executable.
-		else if (build_type == Build_Type::Executable) {
+		//Generate binary.
+		else if (build_type == Build_Type::Binary) {
 
-			std::filesystem::path exec_path = build_output_path / std::filesystem::u8path(build_name);
+			std::filesystem::path bin_path = build_output_path / std::filesystem::u8path(build_name);
 
-			cmd = create_gcc_clang_build_exec_cmd(_compiler, exec_path, obj_files, _config_type);
-
+			cmd = compiler->build_binary_cmd(bin_path, obj_files, _config_type, *this);
+			//@TODO: binary type
 			if (_print_cmds) CBUILD_TRACE(cmd);
 			if (system(cmd.c_str()) != 0) {
 
-				CBUILD_ERROR("Error occurred while linking executable.");
+				CBUILD_ERROR("Error occurred while linking binary.");
 				return false;
 
 			}
 
-			CBUILD_INFO("Generated '{}'", exec_path.string() + ".exe");
+			CBUILD_INFO("Generated '{}'", bin_path.string() + ".exe");
 
-			if (run_exec) {
+			if (run_binary) { //@TODO: Binary type
 
 				cmd = "cd " + build_output_path.string() + " && \"" + build_name + "\"";
 
