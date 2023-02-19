@@ -50,5 +50,5 @@ set_atmel_studio_dir "dir"                    - Directory of Atmel Studio binari
 - Support for dynamic libraries.
 
 ## Credits
-[spdlog](https://github.com/gabime/spdlog)
+[spdlog](https://github.com/gabime/spdlog)  
 [dfu-programmer](https://github.com/dfu-programmer/dfu-programmer)
