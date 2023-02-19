@@ -1,7 +1,7 @@
 # CBuild
 An easy-to-use Windows build system for C written in C++.
-CBuild is simple to setup and will automatically keep track of any source files that needs to be rebuilt.
-Supported compilers: `(gcc, avr-gcc)`
+CBuild is simple to setup and will automatically keep track of any source files that needs to be rebuilt.  
+Supported compilers: `gcc, avr-gcc`  
 
 ## Usage
 In order to use CBuild, simply download the latest release and include it in your `PATH` environment variable (optional, but recommended).  
@@ -11,7 +11,7 @@ Next, create a `.cbuild` file in the root directory of your project and include 
 //Basic example of using CBuild.
 set_compiler "gcc";           //Specifies what C compiler to use. (defaults to gcc)
 set_project_name "Tutorial";  //Specifies the project name.
-add_src_dirs "src;           //Specifies one or multiple directories of source files.
+add_src_dirs "src;            //Specifies one or multiple directories of source files.
 set_obj_output "obj";         //Specifies the output of directory the compiled obj files.
 set_build_output "bin";       //Specifies the directory of the final binary/library.
 set_build_name "tutorial";    //Specifies the name of the final binary/library.
@@ -29,7 +29,7 @@ In order to build your project, open a command prompt in the same directory as y
 ## Command List
 ```
 set_compiler "name"                           - What C compiler to use. (default: gcc, supports: gcc, avr-gcc)  
-set_compiler_dir "dir"                        - Directory of compiler binaries. (default: gcc, supports: gcc, avr-gcc)  
+set_compiler_dir "dir"                        - Directory of compiler binaries.
 set_project_name "name"                       - Project name. (only used internally by CBuild)  
 set_build_type "type"                         - Build type. (default: binary, supports: binary, static_lib)  
 set_build_output "dir"                        - Output directory of build.  
