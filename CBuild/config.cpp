@@ -67,6 +67,7 @@ namespace CBuild {
 		u8 state = 0;
 		u8 string_state = 0;
 		std::string token;
+		std::string cmd;
 
 		Config_Type config_type = Config_Type::Invalid;
 		std::filesystem::path timestamp_path;
@@ -83,8 +84,9 @@ namespace CBuild {
 
 					if (token.empty()) continue;
 					
-					if (token == "last_used_config_type") {
+					if (token == "last_used_config_type" || token == "last_used_compiler") {
 
+						cmd = token;
 						token = "";
 						state = 3;
 
@@ -203,15 +205,22 @@ namespace CBuild {
 
 			}
 
-			//Last used config type.
+			//Last used config type/last used compiler.
 			else if (state == 3) {
 
 				if (c == '\n' || (isspace(c) && !token.empty())) {
 
 					if (!token.empty()) {
 
-						Config_Type t = string_to_config_type(token);
-						if (t != Config_Type::Invalid) last_used_type = t;
+						if (cmd == "last_used_config_type") {
+
+							Config_Type t = string_to_config_type(token);
+							if (t != Config_Type::Invalid) last_used_type = t;
+
+						}
+						else if (cmd == "last_used_compiler") {
+							last_used_compiler = token;
+						}
 
 					}
 
@@ -247,7 +256,8 @@ namespace CBuild {
 
 		std::string source;
 
-		if (last_used_type != Config_Type::Invalid) source += "last_used_config_type " + config_type_to_string(last_used_type) + "\n\n";
+		if (last_used_type != Config_Type::Invalid) source += "last_used_config_type " + config_type_to_string(last_used_type) + "\n";
+		source += "last_used_compiler " + last_used_compiler + "\n\n";
 
 		size_t config_ind = 0;
 		size_t config_count = configs.size();

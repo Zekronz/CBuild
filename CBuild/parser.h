@@ -48,6 +48,8 @@ namespace CBuild {
 		std::unordered_map<std::string, Command> cmds;
 		std::unordered_map<std::string, Compiler_Spec*> compiler_specs;
 
+		std::filesystem::path exec_path = "";
+
 		std::string compiler = "gcc";
 		std::filesystem::path compiler_dir = "";
 
@@ -102,7 +104,7 @@ namespace CBuild {
 		bool parse_cmd_add_files(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::filesystem::path>& _files);
 		bool parse_cmd_add_strings(u64& _index, Token& _cur_token, Token& _prev_token, std::vector<std::string>& _strings, bool _validate_strings = false);
 
-		bool parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type);
+		bool parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type, const std::string& _compiler);
 
 		std::filesystem::path get_atmel_studio_include_path();
 		std::filesystem::path get_atmel_studio_mcu_path();

@@ -9,8 +9,6 @@
 using namespace CBuild;
 
 int main(int argc, char** argv) {
-	
-	//@TODO: Check timestamp of build file?
 
 	Log::init();
 
@@ -22,7 +20,7 @@ int main(int argc, char** argv) {
 	bool flag_force_rebuild = false;
 	bool flag_print_cmds = false;
 	Config_Type config_type = Config_Type::Debug;
-
+	
 	for (int i = 1; i < argc; ++i) {
 
 		flag = argv[i];

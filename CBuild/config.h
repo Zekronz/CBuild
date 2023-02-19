@@ -28,6 +28,7 @@ namespace CBuild {
 	struct Config {
 
 		Config_Type last_used_type = Config_Type::Invalid;
+		std::string last_used_compiler = "gcc";
 		std::unordered_map<Config_Type, Config_Timestamps> configs;
 
 		Config_Type string_to_config_type(std::string _config_name);

@@ -672,7 +672,7 @@ namespace CBuild {
 
 	}
 
-	bool Parser::parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type) {
+	bool Parser::parse_source_and_header_files(const std::filesystem::path& _path, Config_Type _config_type, const std::string& _compiler) {
 
 		//@TODO: Standard libraries?
 
@@ -685,7 +685,7 @@ namespace CBuild {
 
 		}
 
-		bool should_rebuild = false;
+		bool should_rebuild = (config.last_used_compiler != _compiler);
 
 		if (!File::file_exists(_path)) {
 
@@ -697,7 +697,7 @@ namespace CBuild {
 		//Rebuild source file if object file does not exist.
 		std::filesystem::path obj_output_path = get_obj_output_path(_config_type);
 
-		if (_path.extension().string() == ".c") {
+		if (!should_rebuild && _path.extension().string() == ".c") {
 
 			std::filesystem::path obj_file_path = obj_output_path / _path.filename().replace_extension(".o");
 			File::format_path(obj_file_path);
@@ -782,7 +782,7 @@ namespace CBuild {
 
 			}
 
-			if (parse_source_and_header_files(local_path, _config_type)) should_rebuild = true;
+			if (parse_source_and_header_files(local_path, _config_type, _compiler)) should_rebuild = true;
 
 		}
 
@@ -795,7 +795,7 @@ namespace CBuild {
 				File::format_path(incl_path);
 
 				if (!File::file_exists(incl_path)) continue;
-				if (parse_source_and_header_files(incl_path, _config_type)) should_rebuild = true;
+				if (parse_source_and_header_files(incl_path, _config_type, _compiler)) should_rebuild = true;
 
 			}
 
@@ -848,6 +848,8 @@ namespace CBuild {
 
 	bool Parser::build(const std::filesystem::path& _projects_path, bool _force_rebuild, bool _print_cmds, Config_Type _config_type) {
 
+		exec_path = _projects_path.parent_path();
+		
 		if (compiler == "gcc" || compiler == "avr-gcc" || compiler == "clang") {
 			return build_gcc_clang(compiler, _projects_path, _force_rebuild, _print_cmds, _config_type);
 		}
@@ -860,8 +862,8 @@ namespace CBuild {
 
 		//@TODO: Display what compiler is used and time measurment.
 		//@TODO: Reset to white.
-		//@TODO: Rebuild everything if compiler changed.
 		//@TODO: Check if library updated.
+		//@TODO: Check timestamp of build file?
 		
 		std::string cmd;
 
@@ -937,6 +939,9 @@ namespace CBuild {
 		config.clear_config();
 
 		std::filesystem::path config_path = _projects_path / std::filesystem::u8path(project_name + ".cbuild_config");
+		std::hash<std::string> hash;
+		config_path = _projects_path / std::filesystem::u8path(project_name + "_" + std::to_string(hash(config_path.string())) + ".cbuild_config");
+		
 		config.load_config(config_path);
 
 		Config_Timestamps* timestamps = config.get_config_timestamps(_config_type);
@@ -979,7 +984,7 @@ namespace CBuild {
 				u64 time = std::filesystem::last_write_time(precompiled_header).time_since_epoch().count();
 
 				if (_force_rebuild || !File::file_exists(std::filesystem::path(precompiled_header).replace_extension(".gch"))) built_pch = true;
-				else if (config.last_used_type != _config_type) {
+				else if (config.last_used_type != _config_type || config.last_used_compiler != _compiler) {
 					built_pch = true;
 				}
 				else {
@@ -1018,8 +1023,6 @@ namespace CBuild {
 			}
 
 		}
-
-		config.last_used_type = _config_type;
 		
 		//Compile source files.
 		std::vector<std::filesystem::path> src_dir_files;
@@ -1041,7 +1044,7 @@ namespace CBuild {
 				std::filesystem::path obj_path = obj_output_path / file.filename().replace_extension(".o");
 				obj_files.push_back(obj_path);
 
-				bool built = parse_source_and_header_files(file, _config_type);
+				bool built = parse_source_and_header_files(file, _config_type, _compiler);
 				if (!built && !_force_rebuild) continue;
 
 				cmd = compiler->build_source_cmd(file, _config_type, *this);
@@ -1069,7 +1072,7 @@ namespace CBuild {
 			std::filesystem::path obj_path = obj_output_path / src_file.filename().replace_extension(".o");
 			obj_files.push_back(obj_path);
 
-			bool built = parse_source_and_header_files(src_file, _config_type);
+			bool built = parse_source_and_header_files(src_file, _config_type, _compiler);
 			if (!built && !_force_rebuild) continue;
 
 			cmd = compiler->build_source_cmd(src_file, _config_type, *this);
@@ -1089,6 +1092,9 @@ namespace CBuild {
 			built_something = true;
 
 		}
+
+		config.last_used_type = _config_type;
+		config.last_used_compiler = _compiler;
 
 		for (const Checked_File& checked_file : checked_files) {
 			config.set_config_timestamp(_config_type, checked_file.path, checked_file.time);
@@ -1113,18 +1119,7 @@ namespace CBuild {
 
 			std::string lib_name = "lib" + build_name + ".a";
 			std::filesystem::path lib_path = build_output_path / std::filesystem::u8path(lib_name);
-
-			cmd = compiler->build_static_lib_cmd(lib_path, obj_files, _config_type, *this);
-
-			if (_print_cmds) CBUILD_TRACE(cmd);
-			if (system(cmd.c_str()) != 0) {
-
-				CBUILD_ERROR("Error occurred while linking static library.");
-				return false;
-
-			}
-
-			CBUILD_INFO("Generated '{}'", lib_path.string());
+			if (!compiler->build_static_lib(lib_path, obj_files, _config_type, _print_cmds, *this)) return false;
 
 		}
 
@@ -1132,29 +1127,11 @@ namespace CBuild {
 		else if (build_type == Build_Type::Binary) {
 
 			std::filesystem::path bin_path = build_output_path / std::filesystem::u8path(build_name);
-
-			cmd = compiler->build_binary_cmd(bin_path, obj_files, _config_type, *this);
-			//@TODO: binary type
-			if (_print_cmds) CBUILD_TRACE(cmd);
-			if (system(cmd.c_str()) != 0) {
-
-				CBUILD_ERROR("Error occurred while linking binary.");
-				return false;
-
-			}
-
-			CBUILD_INFO("Generated '{}'", bin_path.string() + ".exe");
-
-			if (run_binary) { //@TODO: Binary type
-
-				cmd = "cd " + build_output_path.string() + " && \"" + build_name + "\"";
-
-				if (_print_cmds) CBUILD_TRACE(cmd);
-				system(cmd.c_str());
-
-			}
+			if (!compiler->build_binary(bin_path, obj_files, _config_type, _print_cmds, *this)) return false;
 
 		}
+
+		printf("");
 
 		return true;
 
