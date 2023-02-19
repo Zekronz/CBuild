@@ -50,4 +50,5 @@ set_atmel_studio_dir "dir"                    - Directory of Atmel Studio binari
 - Support for dynamic libraries.
 
 ## Credits
-CBuild uses [spdlog](https://github.com/gabime/spdlog) for logging.
+[spdlog](https://github.com/gabime/spdlog)
+[dfu-programmer](https://github.com/dfu-programmer/dfu-programmer)

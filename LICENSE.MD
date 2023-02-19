@@ -21,5 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 -- NOTE: Third party dependency used by this software --
-This software depends on spdlog (MIT License),
-and users must comply to its license: [https://github.com/fmtlib/fmt/blob/master/LICENSE.rst](https://github.com/gabime/spdlog/blob/v1.x/LICENSE)
+This software depends on spdlog (MIT License), and users must comply to its license: [https://github.com/fmtlib/fmt/blob/master/LICENSE.rst](https://github.com/gabime/spdlog/blob/v1.x/LICENSE)  
+  
+This software depends on dfu-programmer (GPL-2.0 License), and users must comply to its license: [https://github.com/dfu-programmer/dfu-programmer/blob/master/COPYING](https://github.com/dfu-programmer/dfu-programmer/blob/master/COPYING)  
