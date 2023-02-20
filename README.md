@@ -1,5 +1,5 @@
 # CBuild
-An easy-to-use Windows build system for C written in C++.  
+An easy-to-use C build system for Windows, written in C++.  
 CBuild is simple to setup and will automatically keep track of any source files that needs to be rebuilt.  
 Supported compilers: `gcc, avr-gcc`  
 
