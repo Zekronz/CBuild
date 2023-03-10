@@ -25,7 +25,7 @@ namespace CBuild {
 
 	bool Lexer::is_valid_file_name_char(s8 _char) {
 
-		if (_char == '/' || _char == '\\' || _char == ':' || _char == ' ' || !is_valid_path_char(_char)) return false;
+		if (_char == '/' || _char == '\\' || _char == ':' || !is_valid_path_char(_char)) return false;
 		return true;
 
 	}
