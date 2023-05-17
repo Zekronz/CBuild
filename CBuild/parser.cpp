@@ -729,10 +729,8 @@ namespace CBuild {
 		//Parse include directives in file.
 		std::string source;
 		if (!File::read_text_file(_path, source)) {
-
 			checked_files.push_back({ _path, false, time });
 			return false;
-
 		}
 
 		std::vector<std::string> local_files;
