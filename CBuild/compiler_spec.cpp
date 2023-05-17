@@ -37,8 +37,8 @@ namespace CBuild {
 
 	void Compiler_Spec_GCC::add_common_flags(std::string& _cmd, const Config_Type _config, Parser& _parser) {
 
-		if (_config == Config_Type::Debug)	_cmd += " -Wall -g";
-		else								_cmd += " -Wall -O3";
+		if (_config == Config_Type::Debug)	_cmd += " -Wall -g -D DEBUG";
+		else								_cmd += " -Wall -O3 -D NDEBUG";
 
 	}
 

@@ -12,9 +12,6 @@ int main(int argc, char** argv) {
 
 	Log::init();
 
-	//@TODO: Handle ([)]
-	//@TODO: -release flag should set NDEBUG flag.
-
 	//Read input file and flags.
 	std::vector<std::string> flags;
 	std::string flag;

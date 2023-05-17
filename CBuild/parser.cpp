@@ -782,6 +782,7 @@ namespace CBuild {
 
 			}
 
+			if (File::compare(_path, local_path)) continue;
 			if (parse_source_and_header_files(local_path, _config_type, _compiler)) should_rebuild = true;
 
 		}
@@ -795,6 +796,7 @@ namespace CBuild {
 				File::format_path(incl_path);
 
 				if (!File::file_exists(incl_path)) continue;
+				if (File::compare(_path, incl_path)) continue;
 				if (parse_source_and_header_files(incl_path, _config_type, _compiler)) should_rebuild = true;
 
 			}
